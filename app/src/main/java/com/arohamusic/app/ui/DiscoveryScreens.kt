@@ -172,10 +172,7 @@ fun MusicSearchScreen(vm: MusicViewModel, onMore: (Track) -> Unit, focusRequest:
         )
         LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             items(listOf("All", "Songs", "Artists", "Albums", "Playlists", "Videos", "Library")) { choice ->
-                FilterChip(selected = kind == choice, onClick = { focus.clearFocus(); keyboard?.hide(); vm.changeSearchKind(choice) }, label = { Text(choice, fontSize = 12.sp, fontWeight = FontWeight.Medium) },
-                    shape = RoundedCornerShape(10.dp), border = null,
-                    colors = FilterChipDefaults.filterChipColors(containerColor = Glass, labelColor = ContentColor,
-                        selectedContainerColor = ContentColor, selectedLabelColor = Ink))
+                MusicCategoryChip(choice, kind == choice) { focus.clearFocus(); keyboard?.hide(); vm.changeSearchKind(choice) }
             }
         }
         // Existing matches stay in place during the debounce; stale rows cannot start playback.

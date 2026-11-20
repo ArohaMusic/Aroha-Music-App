@@ -58,7 +58,7 @@ fun ExpandableSettingsSheet(onDismiss: () -> Unit, title: String = "Settings", c
         SongPageSurface(Modifier.fillMaxSize()) {
             Column(Modifier.fillMaxSize().motionReveal("settings-window-$title").statusBarsPadding().navigationBarsPadding()) {
                 SettingsHeader(title, onDismiss)
-                Box(Modifier.weight(1f)) { content() }
+                Box(Modifier.weight(1f).fillMaxWidth().imePadding().padding(bottom = 16.dp)) { content() }
             }
         }
     }

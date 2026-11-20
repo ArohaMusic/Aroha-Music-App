@@ -21,6 +21,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.*
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
@@ -44,8 +45,9 @@ fun LyricsPanel(vm: MusicViewModel, track: Track, fullScreen: Boolean = false, e
     val dragged by list.interactionSource.collectIsDraggedAsState()
     LaunchedEffect(track.id) { vm.loadLyrics(track) }
     val lyrics = lyricsState.lyrics.takeIf { lyricsState.trackId == track.id }
-    val pendingPlain = prefs.lyricBehavior != LyricBehavior.PLAIN && lyricsState.findingWordTiming && lyrics?.lines.isNullOrEmpty()
-    val loading = lyricsState.trackId != track.id || lyricsState.loading || pendingPlain
+    val readable = lyrics?.available == true || lyrics?.instrumental == true
+    val pendingTiming = prefs.lyricBehavior != LyricBehavior.PLAIN && lyricsState.findingWordTiming && lyrics?.lines.isNullOrEmpty()
+    val loading = lyricsState.trackId != track.id || (lyricsState.loading && !readable) || pendingTiming
     LaunchedEffect(dragged) { if (dragged) follow = false }
     val position = rememberLyricPlaybackPosition(vm, track.id, prefs.lyricOffsetMs,
         continuous = !reduceMotion && prefs.lyricBehavior != LyricBehavior.PLAIN && lyrics?.lines?.isNotEmpty() == true)
@@ -78,8 +80,8 @@ fun LyricsPanel(vm: MusicViewModel, track: Track, fullScreen: Boolean = false, e
         }
         Box(Modifier.weight(1f).fillMaxWidth().expandLyricsOnRead(embedded) { follow = false; onToggleFullScreen() }) {
             when {
-                loading -> LyricsLoadingPlaceholder(appearance.lyricStyle, prefs.lyricTextSize, embedded)
-                lyricsState.error != null -> SectionFailure(lyricsState.error!!) { vm.loadLyrics(track, retry = true) }
+                loading -> LyricsLoadingPlaceholder(appearance.lyricStyle, prefs.lyricTextSize, embedded, prefs.lyricCentered)
+                lyricsState.error != null && !readable -> SectionFailure(lyricsState.error!!) { vm.loadLyrics(track, retry = true) }
                 lyrics?.instrumental == true -> LyricsEmpty("Just the music", "This recording is instrumental.")
                 lyrics != null && lyrics.lines.isNotEmpty() && prefs.lyricBehavior != LyricBehavior.PLAIN -> {
                     SyncedLyricsView(lyrics, position, active, list, prefs, appearance.lyricStyle, embedded, follow,
@@ -92,24 +94,15 @@ fun LyricsPanel(vm: MusicViewModel, track: Track, fullScreen: Boolean = false, e
                     }
                 }
                 lyrics != null && (lyrics.plain.isNotBlank() || lyrics.lines.isNotEmpty()) -> {
-                    Text(lyrics.plain.ifBlank { lyrics.lines.joinToString("\n") { it.text } }, fontSize = lyricFontSize(appearance.lyricStyle, prefs.lyricTextSize, embedded).sp,
-                        lineHeight = (lyricFontSize(appearance.lyricStyle, prefs.lyricTextSize, embedded) * 1.45f).sp,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.fillMaxSize().verticalScroll(plainScroll).padding(vertical = 20.dp))
+                    PlainLyricsView(lyrics, plainScroll, prefs, appearance.lyricStyle, embedded)
                 }
                 else -> LyricsEmpty("Words taking a break", "Lyrics aren't available for this recording yet.")
             }
         }
         lyrics?.provider?.takeIf { !loading && it.isNotBlank() }?.let {
-            val timing = when {
-                prefs.lyricBehavior == LyricBehavior.PLAIN -> "Plain text"
-                lyrics.lines.isEmpty() -> "Plain text · Timing unavailable"
-                prefs.lyricBehavior == LyricBehavior.WORD && lyrics.wordSynced -> "Word by word"
-                prefs.lyricBehavior == LyricBehavior.WORD -> "Line by line"
-                else -> "Line by line"
-            }
-            val searching = if (lyricsState.findingWordTiming && !lyrics.wordSynced) " · Finding word timing…" else ""
-            Text("$it · $timing$searching", color = Color.White.copy(alpha = .58f), fontSize = 11.sp, modifier = Modifier.padding(vertical = 10.dp))
+            Text(it, color = Color.White.copy(alpha = .58f), fontSize = 11.sp,
+                textAlign = if (prefs.lyricCentered) TextAlign.Center else TextAlign.Start,
+                modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp))
         }
         if (fullScreen) LyricsPlaybackControls(vm)
     }
@@ -138,14 +131,16 @@ private fun lyricOffsetLabel(offsetMs: Long): String = "Lyrics ${"%.1f".format(j
 
 /** Matches the verse geometry instead of showing song rows or an unsynced document. */
 @Composable
-private fun LyricsLoadingPlaceholder(style: LyricStyle, textSize: Int, embedded: Boolean) {
+private fun LyricsLoadingPlaceholder(style: LyricStyle, textSize: Int, embedded: Boolean, centered: Boolean) {
     val lineHeight = with(LocalDensity.current) { (lyricFontSize(style, textSize, embedded) * .72f).sp.toDp() }
     BoxWithConstraints(Modifier.fillMaxSize().clipToBounds().testTag("lyrics-loading")
         .semantics { contentDescription = "Loading lyrics" }) {
         SkeletonGroup(Modifier.fillMaxWidth().padding(top = maxHeight * if (embedded) .12f else .25f)) {
-            Column(verticalArrangement = Arrangement.spacedBy(if (embedded) 28.dp else 40.dp)) {
+            Column(Modifier.fillMaxWidth(), horizontalAlignment = if (centered) Alignment.CenterHorizontally else Alignment.Start,
+                verticalArrangement = Arrangement.spacedBy(if (embedded) 28.dp else 40.dp)) {
                 listOf(listOf(.82f, .56f), listOf(.69f), listOf(.90f, .46f)).forEach { widths ->
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Column(Modifier.fillMaxWidth(), horizontalAlignment = if (centered) Alignment.CenterHorizontally else Alignment.Start,
+                        verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         widths.forEach { width -> SkeletonBox(Modifier.fillMaxWidth(width).height(lineHeight), radius = 6, color = Color.White) }
                     }
                 }

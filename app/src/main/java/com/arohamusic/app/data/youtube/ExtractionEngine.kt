@@ -11,6 +11,10 @@ interface ExtractionEngine {
     fun setCountry(code: String) { }
     fun artistProfileByName(name: String): ArtistProfile? = null
     fun artistSongs(profile: ArtistProfile): List<Track> = emptyList()
+    fun artistSongsPage(profile: ArtistProfile, cursor: ArtistSongsCursor? = null): ArtistSongsPage {
+        require(cursor == null) { "Artist continuation is unavailable" }
+        return ArtistSongsPage(artistSongs(profile))
+    }
     fun artistDetails(profile: ArtistProfile): ArtistProfile = profile
     fun songArtists(trackId: String): List<String> = emptyList()
     fun songArtistCredits(trackId: String): SongArtistCredits = SongArtistCredits(songArtists(trackId))
@@ -58,6 +62,14 @@ data class CollectionCursor(val page: org.schabi.newpipe.extractor.Page,
     val fingerprint: String get() = listOf(page.url, page.id, page.ids, page.body?.contentHashCode()).toString()
 }
 data class CollectionPage(val tracks: List<Track>, val next: CollectionCursor? = null)
+
+/** In-memory continuation bound to a single canonical artist, never persisted or logged. */
+data class ArtistSongsCursor(val artistUrl: String, val token: String? = null,
+    val page: org.schabi.newpipe.extractor.Page? = null,
+    internal val extractor: org.schabi.newpipe.extractor.channel.tabs.ChannelTabExtractor? = null) {
+    val fingerprint: String get() = "$artistUrl:${token ?: listOf(page?.url, page?.id, page?.ids, page?.body?.contentHashCode())}"
+}
+data class ArtistSongsPage(val tracks: List<Track>, val next: ArtistSongsCursor? = null)
 
 data class ResolvedAudioStream(val url: String, val bitrate: Int? = null, val formatIdentity: String? = null,
     val expiresAtEpochMillis: Long? = null, val contentLength: Long? = null, val mimeType: String? = null,

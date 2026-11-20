@@ -27,7 +27,7 @@ private val atmosphereCache = object : LinkedHashMap<String, ImageBitmap>(12, .7
 /** Actual artwork, softly defocused and dimmed. No generated colors or colored gradients. */
 @Composable
 internal fun AmbientPlayerBackdrop(artwork: String, modifier: Modifier = Modifier, dark: Boolean = true,
-    dimAmount: Float? = null, animate: Boolean = true) {
+    dimAmount: Float? = null, animate: Boolean = true, saturation: Float = 1f) {
     val context = LocalContext.current
     val profile = motionProfile()
     val drift = animate && profile.expressive && LocalAppearance.current.effects
@@ -47,7 +47,7 @@ internal fun AmbientPlayerBackdrop(artwork: String, modifier: Modifier = Modifie
     }
     val phase = if (drift) rememberInfiniteTransition(label = "Artwork drift").animateFloat(
         0f, (kotlin.math.PI * 2).toFloat(), infiniteRepeatable(tween(24_000, easing = LinearEasing)), label = "Drift phase") else null
-    val filter = remember { ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(1f) }) }
+    val filter = remember(saturation) { ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(saturation) }) }
     Box(modifier.clipToBounds().background(if (dark) Color(0xFF101014) else Ink)) {
         Crossfade(image, Modifier.matchParentSize(), animationSpec = tween(profile.duration(900)), label = "Artwork atmosphere") { texture ->
             if (texture != null) Image(texture, contentDescription = null, contentScale = ContentScale.Crop,
@@ -65,10 +65,20 @@ internal fun AmbientPlayerBackdrop(artwork: String, modifier: Modifier = Modifie
 
 /** Quiet, static artwork atmosphere for browsing/settings. Player and artist keep their own backdrops. */
 @Composable
-internal fun SongPageBackdrop(modifier: Modifier = Modifier) {
+internal fun SongPageBackdrop(modifier: Modifier = Modifier, artwork: String = LocalAtmosphereArtwork.current) {
     val dark = LocalDarkTheme.current
-    AmbientPlayerBackdrop(LocalAtmosphereArtwork.current, modifier, dark = dark,
-        dimAmount = if (dark) .82f else .95f, animate = false)
+    val appearance = LocalAppearance.current
+    val ink = Ink
+    BoxWithConstraints(modifier.background(ink)) {
+        if (appearance.effects && appearance.mode != com.arohamusic.app.domain.ThemeMode.AMOLED && artwork.isNotBlank()) {
+            AmbientPlayerBackdrop(artwork, Modifier.fillMaxWidth().height(maxHeight * .65f), dark = dark,
+                dimAmount = if (dark) .88f else .94f, animate = false, saturation = .28f)
+            // A quiet artwork halo at the top fades into a solid reading surface. Controls
+            // keep the theme's opaque colours rather than inheriting the cover's contrast.
+            Box(Modifier.matchParentSize().background(Brush.verticalGradient(
+                0f to ink.copy(alpha = .25f), .35f to ink.copy(alpha = .65f), .65f to ink, 1f to ink)))
+        }
+    }
 }
 
 @Composable

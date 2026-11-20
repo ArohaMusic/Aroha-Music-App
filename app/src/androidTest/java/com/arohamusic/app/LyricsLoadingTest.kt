@@ -73,7 +73,17 @@ class LyricsLoadingTest {
             app.features.update { FeatureState(profile = ListenerProfile(namePromptSeen = true),
                 experience = ExperiencePreferences(lyricOffsetMs = 2_500), queue = QueueSnapshot(listOf(track))) }
             app.library.update { LibraryState(savedTracks = listOf(track)) }
+            // Match the fixture's System theme before replacing Activity content. A
+            // previous theme test must not recreate this Activity underneath the fixture.
+            if (android.os.Build.VERSION.SDK_INT >= 31) instrumentation.runOnMainSync {
+                app.getSystemService(android.app.UiModeManager::class.java)
+                    .setApplicationNightMode(android.app.UiModeManager.MODE_NIGHT_AUTO)
+            }
+            instrumentation.waitForIdleSync()
             scenario = ActivityScenario.launch(MainActivity::class.java)
+            assertTrue(device.wait(Until.hasObject(By.desc("Settings")), 5_000))
+            delay(300)
+            instrumentation.waitForIdleSync()
             scenario.onActivity { activity ->
                 ViewModelProvider(activity)[MusicViewModel::class.java].pauseHomeLoading()
                 vm = MusicViewModel(app, YoutubeMusicRepository(engine), repository); vmCreated = true; store.put("lyrics-loading", vm)
@@ -84,17 +94,35 @@ class LyricsLoadingTest {
             }
             withTimeout(5_000) { plainReturned.await() }
             assertTrue(device.wait(Until.hasObject(By.res("lyrics-loading")), 4_000))
+            // Skeleton children are hidden from accessibility. Check the actual rendered
+            // bars against the fixture's solid purple surface instead of exposing them.
+            val area = device.findObject(By.res("lyrics-loading")).visibleBounds
+            val screenshot = instrumentation.uiAutomation.takeScreenshot()!!
+            val pixels = IntArray(area.width() * area.height())
+            screenshot.getPixels(pixels, 0, area.width(), area.left, area.top, area.width(), area.height())
+            val centers = (0 until area.height() step 3).mapNotNull { y ->
+                var first = -1; var last = -1; var count = 0
+                for (x in 0 until area.width()) {
+                    val pixel = pixels[y * area.width() + x]
+                    if (android.graphics.Color.green(pixel) in 31..90 && android.graphics.Color.blue(pixel) in 55..110) {
+                        if (first == -1) first = x
+                        last = x; count++
+                    }
+                }
+                if (count > area.width() * .4) (first + last) / 2 else null
+            }
+            screenshot.recycle()
+            assertTrue("Loading should draw visible verse geometry", centers.size > 10)
+            assertTrue("Skeleton lines should share the centered reading axis", centers.max() - centers.min() <= 3)
             assertTrue(vm.lyrics.value.loading)
             assertNull(vm.lyrics.value.lyrics)
             assertFalse(device.hasObject(By.text(plainDocument)))
             assertTrue(device.hasObject(By.textContains("earlier")))
-            device.takeScreenshot(File(app.getExternalFilesDir(null), "lyrics-loading-offset.png"))
             val beforeReset = calls.get()
             device.findObject(By.text("Reset timing")).click()
-            withTimeout(3_000) { app.features.state.first { it.experience.lyricOffsetMs == 0L } }
+            withTimeout(10_000) { vm.features.first { it.experience.lyricOffsetMs == 0L } }
             assertTrue(device.wait(Until.gone(By.textContains("earlier")), 3_000))
             assertEquals("Reset adjusts the clock without starting another lookup", beforeReset, calls.get())
-            device.takeScreenshot(File(app.getExternalFilesDir(null), "lyrics-loading-default.png"))
 
             // LINE and PLAIN must trigger different lookups, even though neither requests words.
             app.features.update { it.copy(experience = it.experience.copy(lyricBehavior = LyricBehavior.LINE)) }
@@ -111,10 +139,16 @@ class LyricsLoadingTest {
             withTimeout(5_000) { while (vm.lyrics.value.lyrics?.provider != "Synced fixture") delay(20) }
             assertTrue(device.wait(Until.hasObject(By.text("Hello world")), 4_000))
             assertFalse(device.hasObject(By.text(plainDocument)))
-            assertTrue(device.hasObject(By.textContains("Line by line")))
+            assertTrue(device.hasObject(By.text("Synced fixture")))
+            assertFalse(device.hasObject(By.textContains("Line by line")))
             app.features.update { it.copy(experience = it.experience.copy(lyricBehavior = LyricBehavior.WORD)) }
-            assertTrue(device.wait(Until.hasObject(By.textContains("Word by word")), 4_000))
+            withTimeout(4_000) { while (vm.lyrics.value.lyrics?.wordSynced != true) delay(20) }
+            assertFalse(device.hasObject(By.textContains("Word by word")))
             device.takeScreenshot(File(app.getExternalFilesDir(null), "lyrics-loading-ready.png"))
+        } catch (failure: Throwable) {
+            device.takeScreenshot(File(app.getExternalFilesDir(null), "lyrics-loading-failure.png"))
+            device.dumpWindowHierarchy(File(app.getExternalFilesDir(null), "lyrics-loading-failure.xml"))
+            throw failure
         } finally {
             Configurator.getInstance().setWaitForIdleTimeout(idleTimeout)
             releaseWords.complete(Unit)

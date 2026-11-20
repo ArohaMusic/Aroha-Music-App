@@ -63,7 +63,7 @@ fun DiscoveryScreen(vm: MusicViewModel, mood: String, onMood: (String) -> Unit, 
             verticalArrangement = Arrangement.spacedBy(20.dp)) {
             item(key = "header", contentType = "header") {
                 Row(Modifier.fillMaxWidth().padding(horizontal = 22.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Image(androidx.compose.ui.res.painterResource(com.arohamusic.app.R.drawable.brand_mark), null, modifier = Modifier.size(30.dp), colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(Lavender))
+                    AnimatedBrandMark(Modifier.size(30.dp))
                     Text(androidx.compose.ui.res.stringResource(com.arohamusic.app.R.string.app_name), fontSize = 22.sp, letterSpacing = (-.6).sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 8.dp))
                     Spacer(Modifier.weight(1f))
                     Glyph(Icons.Outlined.Search, "Search", onClick = { onSearch("") })
@@ -73,22 +73,14 @@ fun DiscoveryScreen(vm: MusicViewModel, mood: String, onMood: (String) -> Unit, 
             item(key = "mood-chips", contentType = "chips") {
                 LazyRow(contentPadding = PaddingValues(horizontal = 22.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(experience.homeMoods, key = { it }) { choice ->
-                        val selected = mood.equals(choice, true)
-                        val source = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
-                        Surface(onClick = { if (!selected) { onMood(choice); vm.loadHome(choice) } }, interactionSource = source,
-                            modifier = Modifier.pressFeedback(source, .94f),
-                            shape = RoundedCornerShape(10.dp), color = if (selected) ContentColor else ContentColor.copy(alpha = .10f),
-                            contentColor = if (selected) Ink else ContentColor) {
-                            Text(choice, fontSize = 12.sp, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-                                modifier = Modifier.heightIn(min = 48.dp).wrapContentHeight().padding(horizontal = 16.dp, vertical = 12.dp))
+                        MusicCategoryChip(choice, mood.equals(choice, true)) {
+                            if (!mood.equals(choice, true)) { onMood(choice); vm.loadHome(choice) }
                         }
                     }
                     item(key = "add-mood") {
-                        val source = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
-                        Surface(onClick = { addMood = true }, interactionSource = source,
-                            modifier = Modifier.pressFeedback(source, .94f), shape = RoundedCornerShape(10.dp), color = ContentColor.copy(alpha = .10f)) {
-                        MusicIcon(Icons.Outlined.Add, "Add mood chip", modifier = Modifier.padding(14.dp).size(22.dp))
-                    } }
+                        MusicCategoryChip("Add", false, onClick = { addMood = true },
+                            leadingIcon = { MusicIcon(Icons.Outlined.Add, null, modifier = Modifier.size(16.dp)) })
+                    }
                 }
             }
             item(key = "greeting", contentType = "header") {

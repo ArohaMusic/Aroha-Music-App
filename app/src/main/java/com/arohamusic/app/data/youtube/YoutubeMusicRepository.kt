@@ -105,6 +105,10 @@ class YoutubeMusicRepository(
         return getArtistProfile(trackId)?.takeIf { ArtistNames.same(it.name, name) }
     }
     suspend fun getArtistSongs(profile: ArtistProfile): List<Track> = extract { engine.artistSongs(profile) }
+    suspend fun getArtistSongsPage(profile: ArtistProfile, cursor: ArtistSongsCursor? = null): ArtistSongsPage = extract {
+        require(cursor == null || cursor.artistUrl == profile.channelUrl) { "Artist continuation belongs to another page" }
+        engine.artistSongsPage(profile, cursor)
+    }
 
     suspend fun getArtistProfile(trackId: String): ArtistProfile? {
         YoutubeTrackIds.requireValid(trackId)

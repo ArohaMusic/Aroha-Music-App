@@ -30,7 +30,7 @@ fun AppearanceSettings(vm: MusicViewModel) {
     val experience by vm.experience.collectAsStateWithLifecycle(ExperiencePreferences())
     val list = rememberLazyListState()
     LazyColumn(Modifier.fillMaxSize().navigationBarsPadding(), state = list,
-        contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
+        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 72.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
         item {
             SettingsGroup("Theme") {
                 SettingsChoice("App theme", theme.mode.takeIf { it in listOf(ThemeMode.SYSTEM, ThemeMode.LIGHT, ThemeMode.AMOLED) } ?: ThemeMode.AMOLED,

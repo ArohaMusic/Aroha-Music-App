@@ -261,6 +261,7 @@ fun ArtistDetail(vm: MusicViewModel, page: ArtistPageState, onMore: (Track) -> U
     val features by vm.features.collectAsStateWithLifecycle()
     val list = rememberLazyListState()
     var expandedBio by remember(page.name, page.profile?.description) { mutableStateOf(false) }
+    var allSongs by remember(page.name) { mutableStateOf(false) }
     var bioOverflows by remember(page.name, page.profile?.description) { mutableStateOf(false) }
     val heroHeight = (LocalConfiguration.current.screenHeightDp * .46f).dp.coerceIn(260.dp, 520.dp)
     val collapseDistance = with(androidx.compose.ui.platform.LocalDensity.current) { (heroHeight - 72.dp).toPx() }
@@ -269,7 +270,7 @@ fun ArtistDetail(vm: MusicViewModel, page: ArtistPageState, onMore: (Track) -> U
     }
     val toolbarColor = Ink
     Box(Modifier.fillMaxSize()) {
-        AmbientPlayerBackdrop(page.imageUrl, Modifier.matchParentSize(), dark = LocalDarkTheme.current)
+        SongPageBackdrop(Modifier.matchParentSize(), artwork = page.imageUrl)
         LazyColumn(Modifier.fillMaxSize(), state = list, contentPadding = PaddingValues(bottom = 22.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
             item(key = "artist-hero") {
                 Box(Modifier.fillMaxWidth().height(heroHeight)) {
@@ -298,16 +299,17 @@ fun ArtistDetail(vm: MusicViewModel, page: ArtistPageState, onMore: (Track) -> U
             }
             item {
                 Row(Modifier.padding(horizontal = 22.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Popular songs", Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
+                    Text("Songs", Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
+                    MotionTextButton(onClick = { allSongs = true }) { Text("See all") }
                     MotionTextButton(enabled = page.songs.items.isNotEmpty(), onClick = { page.songs.items.firstOrNull()?.let { vm.play(it, page.songs.items) } }) { Text("Play all") }
                 }
             }
             item { Box(Modifier.padding(horizontal = 22.dp)) { GlimpsesButton(page.songs.items.isNotEmpty()) { vm.previewCollection(page.name, page.songs.items) } } }
             item(key = "artist-popular-shelf") {
-                if (page.songs.loading) Box(Modifier.padding(horizontal = 22.dp)) { SongSkeletons(4) }
+                if (page.songs.loading && page.songs.items.isEmpty()) Box(Modifier.padding(horizontal = 22.dp)) { SongSkeletons(4) }
                 else if (page.songs.items.isEmpty()) Text(page.songs.error ?: "No songs available.", color = Muted, modifier = Modifier.padding(horizontal = 22.dp))
                 else LazyRow(contentPadding = PaddingValues(horizontal = 22.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    items(page.songs.items.chunked(4), key = { it.first().id }) { group ->
+                    items(page.songs.items.take(12).chunked(4), key = { it.first().id }) { group ->
                         Column(Modifier.width((LocalConfiguration.current.screenWidthDp * .84f).dp.coerceIn(280.dp, 420.dp))) {
                             group.forEach { song -> TrackRow(song, showFavorite = false,
                                 onPlay = { vm.play(song, page.songs.items) }, onFavorite = { vm.favorite(song) }, onMore = { onMore(song) }) }
@@ -373,6 +375,7 @@ fun ArtistDetail(vm: MusicViewModel, page: ArtistPageState, onMore: (Track) -> U
             }
         }
     }
+    if (allSongs) ArtistSongsSheet(vm, page, onMore) { allSongs = false }
 }
 
 @Composable

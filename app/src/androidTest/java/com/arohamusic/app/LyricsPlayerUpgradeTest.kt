@@ -33,6 +33,9 @@ class LyricsPlayerUpgradeTest {
         val app = instrumentation.targetContext.applicationContext as ArohaApplication
         val oldFeatures = app.features.state.first(); val oldLibrary = app.library.state.first()
         val device = UiDevice.getInstance(instrumentation)
+        val idleTimeout = Configurator.getInstance().waitForIdleTimeout
+        fun awaitNode(selector: BySelector): UiObject2 =
+            device.wait(Until.findObject(selector), 5_000) ?: error("Missing UI control: $selector")
         val audio = File(app.cacheDir, "lyrics-upgrade-fixture.wav")
         val cover = File(app.cacheDir, "lyrics-upgrade-cover.png")
         val bytes = 8000 * 2 * 40
@@ -48,9 +51,16 @@ class LyricsPlayerUpgradeTest {
         val fixture = songs.first()
         var scenario: ActivityScenario<MainActivity>? = null
         var vm: MusicViewModel? = null
-        fun capture(name: String) { device.takeScreenshot(File(app.getExternalFilesDir(null), "v1.24.13-$name.png")) }
+        fun capture(name: String) {
+            android.util.Log.i("ArohaUiCheck", "checkpoint=$name")
+            // Continuous preview animation has no idle frame for UiDevice screenshots.
+            // Keep visual artifacts opt-in; assertions run in every regression pass.
+            if (InstrumentationRegistry.getArguments().getString("captureUiScreenshots") == "true")
+                device.takeScreenshot(File(app.getExternalFilesDir(null), "v1.24.13-$name.png"))
+        }
         suspend fun ready() { delay(250); if (android.os.Build.VERSION.SDK_INT >= 33) instrumentation.uiAutomation.clearCache() }
         try {
+            Configurator.getInstance().setWaitForIdleTimeout(0)
             app.features.update { FeatureState(profile = ListenerProfile(namePromptSeen = true), preferences = ListeningPreferences(analyticsEnabled = false),
                 theme = ThemePreferences(mode = ThemeMode.AMOLED, playerStyle = PlayerStyle.APPLE, lyricStyle = LyricStyle.GLOW, reduceMotion = true)) }
             app.library.update { LibraryState(savedTracks = songs) }
@@ -62,18 +72,18 @@ class LyricsPlayerUpgradeTest {
                 vm!!.play(fixture, songs, ordered = true, recommendationChain = false); vm!!.player.pause()
             }
             assertTrue(device.wait(Until.hasObject(By.descContains("Open full player")), 8000))
-            device.findObject(By.descContains("Open full player")).click()
+            awaitNode(By.descContains("Open full player")).click()
             assertTrue(device.wait(Until.hasObject(By.desc("Show playing next")), 5000))
             ready()
-            val footer = device.findObject(By.desc("Show playing next")).visibleBounds.top
-            device.findObject(By.desc("Show playing next")).click(); ready()
+            val footer = awaitNode(By.desc("Show playing next")).visibleBounds.top
+            awaitNode(By.desc("Show playing next")).click(); ready()
             assertTrue(device.hasObject(By.text("Playing next")))
             repeat(3) { device.swipe(12, device.displayHeight * 4 / 5, 12, device.displayHeight / 5, 25); ready() }
             assertTrue("Queue browsing keeps transport visible", device.hasObject(By.desc("Next")))
-            assertEquals("Player footer must stay anchored", footer, device.findObject(By.desc("Hide playing next")).visibleBounds.top)
+            assertEquals("Player footer must stay anchored", footer, awaitNode(By.desc("Hide playing next")).visibleBounds.top)
             assertFalse("Apple player must not reveal the default lower page", device.hasObject(By.text("Up next")))
             capture("apple-queue")
-            device.findObject(By.desc("Hide playing next")).click()
+            awaitNode(By.desc("Hide playing next")).click()
             scenario.onActivity {
                 (MusicViewModel::class.java.getDeclaredField("lyricsJob").apply { isAccessible = true }.get(vm) as? Job)?.cancel()
                 val fixtureLyrics = Lyrics(lines = listOf(
@@ -93,21 +103,21 @@ class LyricsPlayerUpgradeTest {
                 vm!!.loadLyrics(fixture, retry = true)
             }
             withTimeout(3_000) { while (vm!!.lyrics.value.lyrics?.provider != "Fixture") delay(30) }
-            device.findObject(By.desc("Show lyrics")).click(); ready()
+            awaitNode(By.desc("Show lyrics")).click(); ready()
             assertTrue(device.hasObject(By.text("Hello world")))
-            device.findObject(By.desc("Full-screen lyrics")).click(); ready()
-            assertTrue(device.hasObject(By.textContains("Word by word")))
+            awaitNode(By.desc("Full-screen lyrics")).click(); ready()
+            assertFalse(device.hasObject(By.textContains("Word by word")))
             capture("lyrics-glow")
-            device.findObject(By.desc("Lyrics appearance and timing")).click(); ready()
-            device.findObject(By.text("Lyric style")).click(); ready()
+            awaitNode(By.desc("Lyrics appearance and timing")).click(); ready()
+            awaitNode(By.text("Lyric style")).click(); ready()
             assertFalse("Removed lyric style must not be offered", device.hasObject(By.text("Classic")))
             assertFalse("Removed lyric style must not be offered", device.hasObject(By.text("YouTube Music")))
             device.wait(Until.findObject(By.text("Cascade")), 3_000)!!.click(); ready()
             withTimeout(3000) { while (app.features.state.first().theme.lyricStyle != LyricStyle.FLOAT) delay(30) }
-            device.findObject(By.text("Lyrics behavior")).click(); ready()
+            awaitNode(By.text("Lyrics behavior")).click(); ready()
             device.wait(Until.findObject(By.text("Plain text")), 3_000)!!.click(); ready()
-            device.findObject(By.text("Done")).click(); ready()
-            assertTrue(device.hasObject(By.textContains("Plain text")))
+            awaitNode(By.text("Done")).click(); ready()
+            assertFalse(device.hasObject(By.textContains("Plain text")))
             assertTrue(device.hasObject(By.textContains("Follow the music")))
             capture("lyrics-plain")
             scenario.onActivity { vm!!.player.seek(13_250) }; ready()
@@ -120,7 +130,7 @@ class LyricsPlayerUpgradeTest {
                 if (style == LyricStyle.APPLE) {
                     app.features.update { it.copy(experience = it.experience.copy(lyricBehavior = LyricBehavior.LINE)) }
                     ready(); delay(600)
-                    assertTrue(device.hasObject(By.textContains("Line by line")))
+                    assertFalse(device.hasObject(By.textContains("Line by line")))
                     capture("lyrics-apple-line")
                     app.features.update { it.copy(experience = it.experience.copy(lyricBehavior = LyricBehavior.WORD)) }
                     ready()
@@ -133,35 +143,46 @@ class LyricsPlayerUpgradeTest {
             assertTrue(device.hasObject(By.text("Follow song")))
             scenario.onActivity { vm!!.player.seek(22_000) }; ready()
             assertTrue("A seek must not dismiss manual reading", device.hasObject(By.text("Follow song")))
-            device.findObject(By.text("Follow song")).click(); ready()
+            awaitNode(By.text("Follow song")).click(); ready()
             assertTrue(device.hasObject(By.text("Under a sky full of stars")))
-            device.findObject(By.desc("Back to player")).click(); ready()
-            device.findObject(By.desc("Close player")).click(); ready()
+            awaitNode(By.desc("Back to player")).click(); ready()
+            awaitNode(By.desc("Close player")).click(); ready()
             scenario.onActivity {
                 @Suppress("UNCHECKED_CAST")
                 val artist = MusicViewModel::class.java.getDeclaredField("mutableArtist").apply { isAccessible = true }.get(vm) as MutableStateFlow<ArtistPageState?>
                 artist.value = ArtistPageState("Fixture artist", imageUrl = fixture.artwork,
                     profile = ArtistProfile("Fixture artist", subscribers = 43_700_000, monthlyAudience = "84.2M monthly audience"),
-                    songs = ContentState(songs.take(4)), identityBound = true)
+                    songs = ContentState(songs), identityBound = true)
             }
             for (mode in listOf(ThemeMode.AMOLED, ThemeMode.LIGHT)) {
                 app.features.update { it.copy(theme = it.theme.copy(mode = mode)) }; ready(); delay(400)
-                assertTrue(device.hasObject(By.textContains("43.7M YouTube subscribers")))
+                assertTrue(device.wait(Until.hasObject(By.textContains("43.7M YouTube subscribers")), 5_000))
                 assertTrue(device.hasObject(By.textContains("84.2M monthly audience")))
                 capture("artist-${mode.name.lowercase()}")
             }
+            awaitNode(By.text("See all")).click(); ready()
+            assertTrue(device.wait(Until.hasObject(By.desc("Close artist songs")), 5_000))
+            repeat(8) {
+                if (!device.hasObject(By.text("Fixture song 18"))) {
+                    device.swipe(width / 2, height * 4 / 5, width / 2, height / 3, 24); ready()
+                }
+            }
+            capture("artist-all-songs")
+            assertTrue("The complete song list must extend beyond the preview", device.hasObject(By.text("Fixture song 18")))
+            awaitNode(By.desc("Close artist songs")).click(); ready()
             app.features.update { it.copy(theme = it.theme.copy(mode = ThemeMode.AMOLED, playerStyle = PlayerStyle.APPLE, lyricStyle = LyricStyle.APPLE)) }
             scenario.onActivity { vm!!.closeArtist() }
             assertTrue(device.wait(Until.hasObject(By.desc("Settings")), 5_000)); ready(); delay(500)
             capture("home-artwork-background")
-            device.findObject(By.desc("Settings")).click()
+            awaitNode(By.desc("Settings")).click()
             assertTrue(device.wait(Until.hasObject(By.text("Appearance")), 3_000)); ready()
             capture("settings-artwork-background")
-            device.findObject(By.text("Appearance")).click()
+            awaitNode(By.text("Appearance")).click()
             assertTrue(device.wait(Until.hasObject(By.text("Playing style")), 3_000)); ready()
             assertTrue("Requested player profile is selected", device.hasObject(By.text("Apple Music")))
             device.swipe(width / 2, height * 4 / 5, width / 2, height * 2 / 5, 24); ready()
             assertTrue(device.hasObject(By.text("PREVIEW")))
+            awaitNode(By.desc("Pause lyrics preview")).click(); ready()
             capture("lyrics-settings-preview")
             if (InstrumentationRegistry.getArguments().getString("recordLyrics") == "true") {
                 val movie = File(app.getExternalFilesDir(null), "lyrics-cinematic.mp4")
@@ -170,14 +191,19 @@ class LyricsPlayerUpgradeTest {
                     android.os.ParcelFileDescriptor.AutoCloseInputStream(descriptor).use { it.readBytes() }
                 }
             }
-            assertTrue(UiScrollable(UiSelector().scrollable(true)).scrollTextIntoView("Preferred provider"))
-            device.findObject(By.text("Preferred provider")).click()
+            repeat(6) {
+                if (!device.hasObject(By.text("Preferred provider"))) {
+                    device.swipe(width / 2, height * 4 / 5, width / 2, height * 2 / 5, 24); ready()
+                }
+            }
+            awaitNode(By.text("Preferred provider")).click()
             assertTrue(device.wait(Until.hasObject(By.text("Automatic · best timing")), 3_000))
             assertTrue(device.hasObject(By.text("AMLL")))
             capture("lyrics-provider-options")
             device.pressBack()
             Unit
         } finally {
+            Configurator.getInstance().setWaitForIdleTimeout(idleTimeout)
             scenario?.onActivity { vm?.let { model -> model.player.pause(); model.removeQueue(model.playback.value.queueIds.indices.toSet()) } }
             scenario?.close()
             delay(300)

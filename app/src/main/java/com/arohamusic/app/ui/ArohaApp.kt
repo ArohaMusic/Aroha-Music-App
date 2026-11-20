@@ -179,7 +179,10 @@ fun ArohaApp(vm: MusicViewModel) {
                 val direction = if (targetState.destination.ordinal < initialState.destination.ordinal ||
                     (initialState.collection != null && targetState.collection == null) ||
                     (initialState.artist != null && targetState.artist == null)) -1 else 1
-                motionTransform(motion, direction)
+                if (targetState.destination == Destination.SEARCH || initialState.destination == Destination.SEARCH)
+                    (fadeIn(tween(navigationContentDuration)) togetherWith fadeOut(tween(navigationContentDuration))) using
+                        SizeTransform(clip = false, sizeAnimationSpec = { _, _ -> snap() })
+                else motionTransform(motion, direction)
             }, label = "Browse navigation") { route ->
                 CompositionLocalProvider(LocalBrowseVisibility provides this) {
                     screens.SaveableStateProvider(route.key) {
@@ -212,12 +215,12 @@ fun ArohaApp(vm: MusicViewModel) {
             SongPageBackdrop(Modifier.matchParentSize())
         val wide = maxWidth >= 760.dp
 
-        Column(Modifier.fillMaxSize().then(if (glimpseVisible) Modifier else Modifier.statusBarsPadding()).navigationBarsPadding().imePadding()
+        Column(Modifier.fillMaxSize().then(if (glimpseVisible) Modifier else Modifier.statusBarsPadding())
             .then(if (expandedPlayer || glimpseCollection != null) Modifier.clearAndSetSemantics { } else Modifier)) {
             updates.release?.takeIf { it.isNewerThan(com.arohamusic.app.BuildConfig.VERSION_NAME) && !expandedPlayer && !glimpseVisible }?.let { release ->
                 UpdateAvailableBanner(release.version, vm::showAvailableUpdate)
             }
-            Row(Modifier.weight(1f)) {
+            Row(Modifier.weight(1f).imePadding().then(if (wide) Modifier.navigationBarsPadding() else Modifier)) {
                 if(wide && !glimpseVisible) Column(Modifier.width(176.dp).fillMaxHeight().padding(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Brand(Modifier.padding(vertical = 20.dp))
                     Destination.entries.forEach { item ->
@@ -238,7 +241,7 @@ fun ArohaApp(vm: MusicViewModel) {
                     }
                 }
             }
-            current?.takeIf { !wide && !glimpseVisible }?.let { track ->
+            current?.takeIf { !wide && !glimpseVisible && !imeOpen }?.let { track ->
                 Box(Modifier.heightIn(min = 82.dp)) {
                     playerTransition.AnimatedVisibility(visible = { !it }, enter = fadeIn(tween(motionDuration(140))), exit = fadeOut(tween(motionDuration(140)))) {
                         CompositionLocalProvider(LocalPlayerVisibility provides this) {
@@ -247,9 +250,8 @@ fun ArohaApp(vm: MusicViewModel) {
                         }
                     }
                 }
-                if (imeOpen) Spacer(Modifier.height(8.dp))
             }
-            AnimatedVisibility((!wide || glimpseVisible) && !imeOpen, enter = expandVertically(tween(motionDuration(180))) + fadeIn(tween(motionDuration(180))), exit = shrinkVertically(tween(motionDuration(180))) + fadeOut(tween(motionDuration(180)))) {
+            if ((!wide || glimpseVisible) && !imeOpen) {
                 if (glimpseVisible) CompositionLocalProvider(LocalDarkTheme provides true) {
                     MaterialTheme(colorScheme = darkColorScheme(surface = Color(0xFF101119), onSurface = Color.White, onSurfaceVariant = Color(0xFFB8B8C2))) {
                         ArohaNavigation(destination, navigate)
@@ -349,7 +351,7 @@ private fun ArohaNavigation(destination: Destination, onNavigate: (Destination) 
     val motion = motionProfile()
     val dark = LocalDarkTheme.current
     val indicatorColor = if (dark) Color.White.copy(alpha = .14f) else MaterialTheme.colorScheme.primaryContainer
-    BoxWithConstraints(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface)
+    BoxWithConstraints(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface).navigationBarsPadding()
         .padding(horizontal = 4.dp, vertical = 4.dp)) {
         val tabWidth = maxWidth / Destination.entries.size
         val position by animateDpAsState(tabWidth * destination.ordinal,
