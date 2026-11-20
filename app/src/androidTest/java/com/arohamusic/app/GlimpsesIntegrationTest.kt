@@ -77,6 +77,7 @@ class GlimpsesIntegrationTest {
         com.arohamusic.app.playback.PlaybackTrace.observer = { trace += it }
 
         val device = UiDevice.getInstance(instrumentation)
+        val idleTimeout = Configurator.getInstance().waitForIdleTimeout
         val audio = File(app.cacheDir, "glimpses-test.mp4").also(::video)
         val first = Track("glimpse-fixture-a", "First discovery", "Test artist", "", audio.toURI().toString(), Source.LOCAL, durationSeconds = 6)
         val second = first.copy(id = "glimpse-fixture-b", title = "Second discovery")
@@ -86,7 +87,22 @@ class GlimpsesIntegrationTest {
             try { withTimeout(15_000) { while (!condition()) delay(100) } }
             catch (e: TimeoutCancellationException) { throw AssertionError(label, e) }
         }
+        fun videoIsPlaying(): Boolean {
+            var playing = false
+            scenario?.onActivity { activity ->
+                fun visit(view: android.view.View) {
+                    if (view is android.view.TextureView && view.keepScreenOn) playing = true
+                    if (view is android.view.ViewGroup) for (i in 0 until view.childCount) visit(view.getChildAt(i))
+                }
+                visit(activity.window.decorView)
+            }
+            return playing
+        }
+        suspend fun assertPlayingBehindPanel() {
+            repeat(3) { delay(200); assertTrue("Opening an overlay must not pause the video", videoIsPlaying()) }
+        }
         try {
+            Configurator.getInstance().setWaitForIdleTimeout(100)
             app.features.update { it.copy(profile = it.profile.copy(namePromptSeen = true), preferences = it.preferences.copy(analyticsEnabled = false)) }
             scenario = ActivityScenario.launch(MainActivity::class.java)
             scenario.onActivity {
@@ -114,7 +130,12 @@ class GlimpsesIntegrationTest {
             device.wait(Until.findObject(By.text("Create & save").enabled(true)), 5_000)!!.click()
             await("Playlist keeps the song") { vm!!.library.value.playlists.any { it.name == "Glimpses test playlist" && first.id in it.trackIds } }
             assertTrue(device.wait(Until.gone(By.text("Create & save")), 5_000))
+            val selections = trace.count { it.id == first.id && it.stage in setOf("glimpse_cold_selection", "glimpse_prepared_handoff") }
             device.wait(Until.findObject(By.desc("Video quality")), 5_000)!!.click()
+            assertTrue(device.wait(Until.hasObject(By.text("Highest available")), 5_000))
+            assertPlayingBehindPanel()
+            assertEquals("Opening quality settings must not reload the clip", selections,
+                trace.count { it.id == first.id && it.stage in setOf("glimpse_cold_selection", "glimpse_prepared_handoff") })
             device.wait(Until.findObject(By.text("Highest available")), 5_000)!!.click()
             await("Quality persists") { vm!!.preferences.value.glimpseQuality == GlimpseQuality.HIGHEST }
             assertTrue(device.wait(Until.gone(By.text("Highest available")), 5_000))
@@ -125,9 +146,24 @@ class GlimpsesIntegrationTest {
             assertTrue(device.wait(Until.hasObject(By.desc("Glimpse video rendered")), 5_000))
             device.wait(Until.findObject(By.desc("More")), 5_000)!!.click()
             assertTrue(device.wait(Until.hasObject(By.text("Start radio")), 5_000))
+            assertPlayingBehindPanel()
+            device.findObject(By.text("Video quality")).click()
+            assertTrue(device.wait(Until.hasObject(By.text("Highest available")), 5_000))
+            assertPlayingBehindPanel()
             device.findObject(By.desc("Close panel")).click()
             assertTrue(device.wait(Until.gone(By.text("Start radio")), 5_000))
             await("Playback resumes after action sheet closes") { device.hasObject(By.desc("Preview playback: Playing")) }
+            device.findObject(By.descContains("Preview playback:")).click()
+            await("Manual pause before opening settings") { !videoIsPlaying() }
+            device.findObject(By.desc("Video quality")).click()
+            assertTrue(device.wait(Until.hasObject(By.text("Auto")), 5_000))
+            delay(400)
+            assertFalse("Opening settings must preserve an explicit pause", videoIsPlaying())
+            device.findObject(By.text("Auto")).click()
+            assertTrue(device.wait(Until.gone(By.text("Highest available")), 5_000))
+            assertFalse("Choosing the current quality must preserve an explicit pause", videoIsPlaying())
+            device.findObject(By.descContains("Preview playback:")).click()
+            await("Explicit resume still works") { videoIsPlaying() }
             device.waitForIdle()
             val swipeStarted = android.os.SystemClock.elapsedRealtime()
             device.swipe(device.displayWidth / 2, device.displayHeight * 2 / 3, device.displayWidth / 2, device.displayHeight / 4, 25)
@@ -160,6 +196,7 @@ class GlimpsesIntegrationTest {
             device.executeShellCommand("sh -c 'run-as com.arohamusic.app cat ${hierarchy.path} > /data/local/tmp/aroha-glimpses-hierarchy.xml'")
             throw e
         } finally {
+            Configurator.getInstance().setWaitForIdleTimeout(idleTimeout)
             scenario?.onActivity {
                 vm?.closeGlimpseCollection(); vm?.player?.pause()
                 vm?.playback?.value?.queueIds?.indices?.reversed()?.forEach { vm?.player?.removeQueue(it) }

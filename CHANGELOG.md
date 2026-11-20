@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Redesign song and Glimpses action menus with a fixed song header, quick actions, grouped controls and clearer quality selection.
+- Keep Glimpses playing while action, playlist and quality panels are open; preserve a manually paused preview when opening or closing settings.
 - Center lyrics and their loading placeholders by default; format untimed lyrics into readable verses and simplify the provider footer.
 - Keep Quick Picks stable during playback and library changes; retain loading placeholders when Home requests are interrupted.
 - Match Home category chips to Search, anchor the search field while the keyboard opens, and extend the bottom navigation surface through the gesture area.

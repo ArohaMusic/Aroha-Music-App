@@ -140,7 +140,7 @@ fun timeLabel(ms: Long): String = "%d:%02d".format(ms / 60000, ms / 1000 % 60)
 
 /** Material sheets have their own window and need the same icon contrast as the app. */
 @Composable
-fun ThemeSheetSystemBars() {
+fun ThemeSheetSystemBars(darkStatusBar: Boolean = LocalDarkTheme.current) {
     val view = LocalView.current
     val dark = LocalDarkTheme.current
     SideEffect {
@@ -151,7 +151,7 @@ fun ThemeSheetSystemBars() {
             window.navigationBarColor = android.graphics.Color.TRANSPARENT
             if (android.os.Build.VERSION.SDK_INT >= 29) window.isNavigationBarContrastEnforced = false
             WindowCompat.getInsetsController(window, window.decorView).apply {
-                isAppearanceLightStatusBars = !dark
+                isAppearanceLightStatusBars = !darkStatusBar
                 isAppearanceLightNavigationBars = !dark
             }
         }

@@ -281,46 +281,15 @@ fun ArohaApp(vm: MusicViewModel) {
         ThemeSheetSystemBars()
         QueueEditor(vm, onClose = { showQueue = false }) { options = it }
     }
-    options?.let { track -> ArohaSheet(onDismissRequest = { options = null }, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = Glass) {
-        ThemeSheetSystemBars()
-        val artistNames = rememberSongArtists(vm, track)
-        Column(Modifier.fillMaxWidth().heightIn(max = 680.dp).verticalScroll(rememberScrollState()).navigationBarsPadding().padding(horizontal = 20.dp, vertical = 12.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) { Artwork(track, Modifier.size(60.dp)); Column(Modifier.padding(start = 14.dp)) { Text(track.title, fontWeight = FontWeight.Bold); Text(artistNames.joinToString(" · "), color = Muted, fontSize = 12.sp) } }
-            Spacer(Modifier.height(18.dp))
-            if (current?.id == track.id) {
-                PlayerAudioDetails(vm, track)
-                PlayerSleepTimer(vm)
-                Option(Icons.AutoMirrored.Rounded.QueueMusic, "Open queue") { options = null; showQueue = true }
-            }
-            Option(Icons.Outlined.FavoriteBorder, if(track.id in library.favorites) "Remove from favorites" else "Add to favorites") { vm.favorite(track); options = null }
-            Option(Icons.AutoMirrored.Rounded.PlaylistAdd, "Add to playlist") { addToPlaylist = track; options = null }
-            Option(Icons.AutoMirrored.Rounded.PlaylistPlay, "Play next") { vm.enqueue(track, next = true); options = null }
-            Option(Icons.AutoMirrored.Rounded.QueueMusic, "Add to queue") { vm.enqueue(track); options = null }
-            artistNames.forEach { name ->
-                Option(Icons.Outlined.Person, if (artistNames.size == 1) "View artist & albums" else "View $name") {
-                    vm.openArtist(name, track); options = null; playerExpansion.animateExpanded(false)
-                }
-            }
-            Option(Icons.Rounded.ThumbDownOffAlt, "Not interested") { vm.lessLike(track); options = null }
-            if (track.source == Source.YOUTUBE) Option(Icons.Rounded.Share, "Share song") {
-                val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-                    type = "text/plain"; putExtra(android.content.Intent.EXTRA_TEXT, "https://music.youtube.com/watch?v=${track.id}")
-                }
-                context.startActivity(android.content.Intent.createChooser(intent, "Share ${track.title}")); options = null
-            }
-            if(track.canDownload) {
-                val existing = downloads[track.id]
-                if (existing == null || existing.state == Download.STATE_FAILED) {
-                    Option(Icons.Rounded.Download, if (existing == null) "Download for offline" else "Retry download") { download(track); options = null }
-                }
-                if (existing != null) Option(Icons.Rounded.DeleteOutline,
-                    if (existing.state == Download.STATE_COMPLETED || existing.state == Download.STATE_FAILED) "Remove download" else "Cancel download") {
-                    vm.removeDownload(track.id); options = null
-                }
-            }
-            if(playlistId != null) Option(Icons.Rounded.RemoveCircleOutline, "Remove from this playlist") { vm.removeFromPlaylist(playlistId!!, track.id); options = null }
-            Spacer(Modifier.height(24.dp))
-        }
+    options?.let { track -> ArohaSheet(onDismissRequest = { options = null },
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = Ink) {
+        ThemeSheetSystemBars(darkStatusBar = expandedPlayer || LocalDarkTheme.current)
+        SongActionsMenu(vm, track, current = current?.id == track.id, onClose = { options = null },
+            onPlaylist = { addToPlaylist = track; options = null },
+            onDownload = { download(track); options = null },
+            onQueue = { options = null; showQueue = true },
+            onArtist = { name -> vm.openArtist(name, track); options = null; playerExpansion.animateExpanded(false) },
+            onRemoveFromPlaylist = playlistId?.let { id -> { vm.removeFromPlaylist(id, track.id); options = null } })
     } }
     addToPlaylist?.let { track -> AlertDialog(onDismissRequest = { addToPlaylist = null }, title = { Text("Add to playlist") }, text = {
         Column { if(library.playlists.isEmpty()) Text("Create a playlist in your library first.", color = Muted)
@@ -500,13 +469,6 @@ private fun MiniPlayer(vm: MusicViewModel, track: Track, artists: String, state:
 private fun MiniPlayerProgress(vm: MusicViewModel) {
     val playback by vm.playback.collectAsStateWithLifecycle()
     PlaybackTimeline(playback.position, playback.duration, playback.bufferedPosition, playback.buffering)
-}
-
-@Composable
-private fun Option(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, onClick: () -> Unit) {
-    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).motionClickable(onClick = onClick).padding(15.dp), verticalAlignment = Alignment.CenterVertically) {
-        MusicIcon(icon, null, tint = Lavender, modifier = Modifier.size(21.dp)); Text(label, Modifier.padding(start = 15.dp), fontSize = 14.sp)
-    }
 }
 
 @Composable
