@@ -105,7 +105,7 @@ fun ListeningSettings(vm: MusicViewModel, onAppearance: () -> Unit, onCountry: (
 @Composable
 internal fun SettingsHeader(title: String, onClose: () -> Unit) {
     Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(title, Modifier.weight(1f), style = MaterialTheme.typography.headlineMedium)
+        Text(title, Modifier.weight(1f), style = ArohaType.PageTitle)
         LocalSettingsWindow.current?.let { window ->
             Glyph(if (window.fullScreen) Icons.Rounded.FullscreenExit else Icons.Rounded.Fullscreen,
                 if (window.fullScreen) "Exit full-screen settings" else "Full-screen settings", onClick = window.toggle)
@@ -117,7 +117,7 @@ internal fun SettingsHeader(title: String, onClose: () -> Unit) {
 @Composable
 internal fun SettingsGroup(title: String, content: @Composable ColumnScope.() -> Unit) {
     Column(Modifier.motionReveal("settings-$title"), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text(title, Modifier.padding(start = 4.dp), style = MaterialTheme.typography.labelLarge, color = Muted)
+        Text(title, Modifier.padding(start = 4.dp), style = ArohaType.GroupLabel, color = Muted)
         Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surfaceContainer) {
             Column(Modifier.fillMaxWidth().padding(vertical = 4.dp), content = content)
         }
@@ -128,8 +128,8 @@ internal fun SettingsGroup(title: String, content: @Composable ColumnScope.() ->
 internal fun SettingsAction(title: String, subtitle: String? = null, enabled: Boolean = true, onClick: () -> Unit) {
     Row(Modifier.fillMaxWidth().cardPress(title, enabled, onClick).padding(horizontal = 16.dp, vertical = 15.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge)
-            if (subtitle != null) Text(subtitle, color = Muted, style = MaterialTheme.typography.bodySmall)
+            Text(title, style = ArohaType.SettingTitle)
+            if (subtitle != null) Text(subtitle, color = Muted, style = ArohaType.Metadata)
         }
         MusicIcon(Icons.Rounded.ChevronRight, null, tint = Muted, modifier = Modifier.padding(start = 12.dp).size(20.dp))
     }
@@ -144,7 +144,7 @@ internal fun <T> SettingsChoice(title: String, value: T, choices: List<T>, label
             choices.forEach { choice ->
                 Row(Modifier.fillMaxWidth().motionClickable { onChange(choice); open = false }.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                     RadioButton(value == choice, null)
-                    Text(label(choice), Modifier.padding(start = 12.dp), style = MaterialTheme.typography.bodyLarge)
+                    Text(label(choice), Modifier.padding(start = 12.dp), style = ArohaType.SettingTitle)
                 }
             }
         }
@@ -155,8 +155,8 @@ internal fun <T> SettingsChoice(title: String, value: T, choices: List<T>, label
 internal fun SettingSwitch(title: String, description: String, value: Boolean, onChange: (Boolean) -> Unit) {
     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f).padding(end = 16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge)
-            Text(description, color = Muted, style = MaterialTheme.typography.bodySmall)
+            Text(title, style = ArohaType.SettingTitle)
+            Text(description, color = Muted, style = ArohaType.Metadata)
         }
         Switch(value, onChange)
     }

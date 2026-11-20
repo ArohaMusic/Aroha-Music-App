@@ -18,7 +18,6 @@ import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.ResolvedTextDirection
 import androidx.compose.ui.text.style.TextAlign
@@ -203,9 +202,10 @@ internal fun LyricVerse(line: LyricLine, nextLineMs: Long?, position: LongState,
     var layout by remember(line.text) { mutableStateOf<TextLayoutResult?>(null) }
     val shapes = remember(layout, ranges) { layout?.let { shapeWords(it, ranges) }.orEmpty() }
     val drawCache = remember(shapes) { LyricDrawCache(shapes) }
-    val textStyle = TextStyle(fontFamily = FontFamily.SansSerif,
+    // Leave room for Jakarta's descenders and lifted word masks between wrapped lines.
+    val textStyle = TextStyle(fontFamily = ArohaFont,
         fontWeight = FontWeight.SemiBold,
-        fontSize = textSize.sp, lineHeight = (textSize * 1.23f).sp,
+        fontSize = textSize.sp, lineHeight = (textSize * 1.4f).sp,
         letterSpacing = (-.35).sp,
         textAlign = if (centered) TextAlign.Center else TextAlign.Start)
     Box(modifier.fillMaxWidth().graphicsLayer {

@@ -24,7 +24,7 @@ internal fun PlainLyricsView(lyrics: Lyrics, scroll: ScrollState, prefs: Experie
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(24.dp)) {
         blocks.forEach { block ->
             Text(if (block.section) block.text.removeSurrounding("[", "]") else block.text,
-                modifier = Modifier.widthIn(max = 600.dp).fillMaxWidth(),
+                modifier = Modifier.widthIn(max = 600.dp).fillMaxWidth(), style = ArohaTypography.bodyLarge,
                 color = Color.White.copy(alpha = if (block.section) .58f else .88f),
                 fontSize = if (block.section) 13.sp else textSize.sp,
                 lineHeight = if (block.section) 20.sp else (textSize * 1.5f).sp,

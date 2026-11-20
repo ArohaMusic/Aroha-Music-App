@@ -252,7 +252,7 @@ private fun GlimpsesContent(vm: MusicViewModel, collection: GlimpseCollection? =
                 }
                 if (selected && showBuffering) CircularProgressIndicator(Modifier.size(26.dp).align(Alignment.Center), color = Color.White, strokeWidth = 2.dp)
                 if (selected && renderer?.error != null) Column(Modifier.align(Alignment.Center).background(Color.Black.copy(alpha = .6f), RoundedCornerShape(16.dp)).padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(renderer.error!!, color = Color.White, fontSize = 13.sp)
+                    Text(renderer.error!!, color = Color.White, style = ArohaType.Metadata)
                     MotionTextButton(onClick = { sources.invalidate(item.id); retry++ }) { Text("Retry", color = Color.White) }
                 }
                 Column(Modifier.align(Alignment.BottomEnd).padding(end = 10.dp, bottom = 112.dp), verticalArrangement = Arrangement.spacedBy(6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -272,8 +272,8 @@ private fun GlimpsesContent(vm: MusicViewModel, collection: GlimpseCollection? =
                     AsyncImage(item.artwork, "View album", contentScale = ContentScale.Crop,
                         modifier = Modifier.size(40.dp).playerArtwork(item.id).clip(RoundedCornerShape(8.dp)).clickable { album(item) })
                     Column(Modifier.weight(1f)) {
-                        Text(item.title, modifier = Modifier.playerTitle(item.id), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp, lineHeight = 23.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                        Text(item.artist, color = Color.White.copy(alpha = .8f), fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        Text(item.title, modifier = Modifier.playerTitle(item.id), color = Color.White, style = ArohaType.GlimpseTitle, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        Text(item.artist, color = Color.White.copy(alpha = .8f), style = ArohaType.Metadata, maxLines = 1, overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.clickable { stop(); vm.closeGlimpseCollection(); vm.openArtist(vm.cachedArtists(item).firstOrNull() ?: item.artist, item) })
                     }
                     GlimpseIcon(Icons.Rounded.PlayArrow, "Play full song", background = true) { full(false) }
@@ -284,7 +284,7 @@ private fun GlimpsesContent(vm: MusicViewModel, collection: GlimpseCollection? =
         Row(Modifier.align(Alignment.TopCenter).fillMaxWidth().statusBarsPadding().padding(horizontal = 10.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             if (onClose != null) GlimpseIcon(Icons.AutoMirrored.Rounded.ArrowBack, "Close Glimpses", onClick = { stop(); onClose() })
             Text(collection?.title ?: "Glimpses", Modifier.weight(1f).padding(start = if (onClose == null) 8.dp else 2.dp),
-                color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                color = Color.White, style = ArohaType.ActionTitle, maxLines = 1, overflow = TextOverflow.Ellipsis)
             GlimpseIcon(if (muted) Icons.AutoMirrored.Rounded.VolumeOff else Icons.AutoMirrored.Rounded.VolumeUp, if (muted) "Unmute previews" else "Mute previews") { muted = !muted }
             GlimpseIcon(Icons.Rounded.Tune, "Video quality") { panel = GlimpsePanel.QUALITY }
         }
@@ -302,15 +302,15 @@ private fun GlimpsesContent(vm: MusicViewModel, collection: GlimpseCollection? =
                 } else Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     if (shown == GlimpsePanel.CREATE) GlimpseIcon(Icons.AutoMirrored.Rounded.ArrowBack, "Back to playlists") { panel = GlimpsePanel.SAVE }
                     Text(when (shown) { GlimpsePanel.QUALITY -> "Video quality"; GlimpsePanel.SAVE -> "Save to playlist"; GlimpsePanel.CREATE -> "New playlist"; else -> "Glimpses" },
-                        Modifier.weight(1f), color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 20.sp)
+                        Modifier.weight(1f), color = Color.White, style = ArohaType.SectionTitle)
                     GlimpseIcon(Icons.Rounded.Close, "Close panel") { dismiss {} }
                 }
                 Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())) {
                     when (shown) {
                         GlimpsePanel.QUALITY -> {
-                            if (preview.actualHeight > 0) Text("Playing ${preview.actualHeight}p", color = Color.White.copy(alpha = .6f), fontSize = 13.sp, modifier = Modifier.padding(vertical = 8.dp))
+                            if (preview.actualHeight > 0) Text("Playing ${preview.actualHeight}p", color = Color.White.copy(alpha = .6f), style = ArohaType.Metadata, modifier = Modifier.padding(vertical = 8.dp))
                             Text("Auto follows your connection. Higher quality uses more data.", color = Muted,
-                                fontSize = 12.sp, modifier = Modifier.padding(bottom = 4.dp))
+                                style = ArohaType.Caption, modifier = Modifier.padding(bottom = 4.dp))
                             ActionMenuGroup {
                                 GlimpseQuality.entries.filter { it == GlimpseQuality.AUTO || it == GlimpseQuality.HIGHEST ||
                                     it == quality || it.maxHeight in preview.availableHeights }.forEach { choice ->

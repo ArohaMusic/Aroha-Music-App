@@ -10,13 +10,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.Font
-import com.arohamusic.app.R
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -33,38 +27,6 @@ val OnAccent: Color @Composable get() = MaterialTheme.colorScheme.onPrimary
 val LocalAppearance = staticCompositionLocalOf { ThemePreferences() }
 val LocalAtmosphereArtwork = staticCompositionLocalOf { "" }
 val LocalDarkTheme = staticCompositionLocalOf { true }
-
-private val ArohaFont = FontFamily(
-    Font(R.font.jakarta_regular, FontWeight.Normal), Font(R.font.jakarta_medium, FontWeight.Medium),
-    Font(R.font.jakarta_semibold, FontWeight.SemiBold), Font(R.font.jakarta_bold, FontWeight.Bold),
-    Font(R.font.jakarta_extrabold, FontWeight.ExtraBold),
-)
-
-private val ArohaTypography = Typography(
-    headlineLarge = TextStyle(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.Bold, fontSize = 34.sp, letterSpacing = (-.5).sp),
-    headlineMedium = TextStyle(fontWeight = FontWeight.Bold, fontSize = 27.sp, letterSpacing = (-.3).sp),
-    titleLarge = TextStyle(fontWeight = FontWeight.Bold, fontSize = 21.sp, letterSpacing = (-.2).sp),
-    bodyMedium = TextStyle(fontSize = 14.sp, lineHeight = 21.sp),
-    labelSmall = TextStyle(fontSize = 10.sp, letterSpacing = 1.sp, fontWeight = FontWeight.Medium),
-).let { base ->
-    base.copy(
-        displayLarge = base.displayLarge.copy(fontFamily = ArohaFont),
-        displayMedium = base.displayMedium.copy(fontFamily = ArohaFont),
-        displaySmall = base.displaySmall.copy(fontFamily = ArohaFont),
-        headlineLarge = base.headlineLarge.copy(fontFamily = ArohaFont),
-        headlineMedium = base.headlineMedium.copy(fontFamily = ArohaFont),
-        headlineSmall = base.headlineSmall.copy(fontFamily = ArohaFont),
-        titleLarge = base.titleLarge.copy(fontFamily = ArohaFont),
-        titleMedium = base.titleMedium.copy(fontFamily = ArohaFont, fontWeight = FontWeight.SemiBold),
-        titleSmall = base.titleSmall.copy(fontFamily = ArohaFont, fontWeight = FontWeight.SemiBold),
-        bodyLarge = base.bodyLarge.copy(fontFamily = ArohaFont),
-        bodyMedium = base.bodyMedium.copy(fontFamily = ArohaFont),
-        bodySmall = base.bodySmall.copy(fontFamily = ArohaFont),
-        labelLarge = base.labelLarge.copy(fontFamily = ArohaFont),
-        labelMedium = base.labelMedium.copy(fontFamily = ArohaFont),
-        labelSmall = base.labelSmall.copy(fontFamily = ArohaFont),
-    )
-}
 
 fun arohaColorScheme(preferences: ThemePreferences, dark: Boolean): ColorScheme {
     val amoled = preferences.mode == ThemeMode.AMOLED

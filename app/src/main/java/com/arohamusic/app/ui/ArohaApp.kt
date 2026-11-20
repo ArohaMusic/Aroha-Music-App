@@ -31,7 +31,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
 import androidx.core.content.ContextCompat
@@ -227,7 +226,7 @@ fun ArohaApp(vm: MusicViewModel) {
                         Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(if(item == destination) Lavender.copy(alpha = 0.12f) else Color.Transparent)
                             .motionClickable { navigate(item) }.padding(15.dp), verticalAlignment = Alignment.CenterVertically) {
                             MusicIcon(item.icon, null, tint = if(item == destination) Lavender else Muted, modifier = Modifier.size(21.dp))
-                            Text(item.label, color = if(item == destination) Lavender else Muted, modifier = Modifier.padding(start = 12.dp), fontSize = 13.sp)
+                            Text(item.label, color = if(item == destination) Lavender else Muted, modifier = Modifier.padding(start = 12.dp), style = ArohaType.Metadata)
                         }
                     }
                     Spacer(Modifier.weight(1f)); Text("YOUR WORLD. IN SOUND.", color = Muted, style = MaterialTheme.typography.labelSmall)
@@ -350,7 +349,7 @@ private fun ArohaNavigation(destination: Destination, onNavigate: (Destination) 
                     val label = if (LocalDensity.current.fontScale > 1.4f) when (item) {
                         Destination.HOME -> "Home"; Destination.GLIMPSES -> "Clips"; Destination.DOWNLOADS -> "Offline"; else -> item.label
                     } else item.label
-                    Text(label, maxLines = 1, fontSize = 11.sp, color = tint, modifier = Modifier.padding(top = 3.dp))
+                    Text(label, maxLines = 1, style = ArohaType.Navigation, overflow = TextOverflow.Ellipsis, color = tint, modifier = Modifier.padding(top = 3.dp))
                 }
             }
         }
@@ -361,7 +360,7 @@ private fun ArohaNavigation(destination: Destination, onNavigate: (Destination) 
 private fun Brand(modifier: Modifier = Modifier) {
     Row(modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp)) {
         Image(androidx.compose.ui.res.painterResource(com.arohamusic.app.R.drawable.brand_mark), null, modifier = Modifier.size(30.dp), colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(Lavender))
-        Text(androidx.compose.ui.res.stringResource(com.arohamusic.app.R.string.app_name), fontWeight = FontWeight.Bold, fontSize = 25.sp, letterSpacing = (-1).sp)
+        Text(androidx.compose.ui.res.stringResource(com.arohamusic.app.R.string.app_name), style = ArohaType.Brand)
         Box(Modifier.padding(start = 2.dp).size(5.dp).background(Mint, CircleShape))
     }
 }
@@ -447,8 +446,8 @@ private fun MiniPlayer(vm: MusicViewModel, track: Track, artists: String, state:
         Row(Modifier.fillMaxWidth().padding(start = 10.dp, top = 9.dp, bottom = 9.dp, end = 5.dp), verticalAlignment = Alignment.CenterVertically) {
             Artwork(track, Modifier.size(43.dp).playerArtwork(track.id))
             Column(Modifier.weight(1f).padding(start = 12.dp)) {
-                PlayerMarquee(track.title, Modifier.fillMaxWidth().playerTitle(track.id), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                PlayerMarquee(artists, Modifier.fillMaxWidth(), Muted, 11.sp)
+                PlayerMarquee(track.title, Modifier.fillMaxWidth().playerTitle(track.id), style = ArohaType.TrackTitle)
+                PlayerMarquee(artists, Modifier.fillMaxWidth(), Muted, style = ArohaType.Caption)
             }
             Glyph(PlayerIcons.Previous, "Previous track", ContentColor, vm.player::previous)
             val wantsPlay = state.playWhenReady && state.error == null

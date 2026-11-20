@@ -10,7 +10,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
 import com.arohamusic.app.domain.Track
@@ -37,8 +36,8 @@ fun PlayerAudioDetails(vm: MusicViewModel, track: Track) {
     MotionTextButton(onClick = { details = true }, modifier = Modifier.fillMaxWidth()) {
         MusicIcon(Icons.Rounded.HighQuality, null, tint = Lavender)
         Column(Modifier.weight(1f).padding(start = 14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("Audio quality", color = ContentColor)
-            Text(streamDetails, color = Muted, fontSize = 12.sp)
+            Text("Audio quality", color = ContentColor, style = ArohaType.ActionLabel)
+            Text(streamDetails, color = Muted, style = ArohaType.Metadata)
         }
     }
     if (details) AlertDialog(onDismissRequest = { details = false }, title = { Text("Audio quality") }, text = {

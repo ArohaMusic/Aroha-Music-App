@@ -47,31 +47,31 @@ internal fun EnterHomeSection(key: String, index: Int = 0, content: @Composable 
 internal fun HomeHeading(title: String, subtitle: String, action: String? = null, onAction: () -> Unit = {}) {
     Row(Modifier.fillMaxWidth().padding(horizontal = 22.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(title, fontWeight = FontWeight.Bold, fontSize = 22.sp, letterSpacing = (-0.4).sp)
-            Text(subtitle, color = Muted, fontSize = 12.sp, lineHeight = 17.sp)
+            Text(title, style = ArohaType.SectionTitle)
+            Text(subtitle, color = Muted, style = ArohaType.Caption)
         }
-        if (action != null) MotionTextButton(onClick = onAction) { Text(action, fontSize = 11.sp) }
+        if (action != null) MotionTextButton(onClick = onAction) { Text(action, style = ArohaType.Control) }
     }
 }
 
 @Composable
 internal fun HomeSpotlight(track: Track, country: String, onPlay: () -> Unit) {
-    Box(Modifier.fillMaxWidth().height(206.dp).clip(MaterialTheme.shapes.extraLarge).cardPress("Play spotlight", onClick = onPlay)) {
+    Box(Modifier.fillMaxWidth().height(206.dp * androidx.compose.ui.platform.LocalDensity.current.fontScale.coerceAtLeast(1f)).clip(MaterialTheme.shapes.extraLarge).cardPress("Play spotlight", onClick = onPlay)) {
         CoverImage(track.artwork, null, Modifier.matchParentSize(), highQuality = true)
         Box(Modifier.matchParentSize().background(Brush.horizontalGradient(listOf(Color(0xFF11121E).copy(alpha = 0.92f), Color.Black.copy(alpha = 0.65f)))))
         Column(Modifier.fillMaxSize().padding(22.dp), verticalArrangement = Arrangement.SpaceBetween) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 MusicIcon(Icons.Rounded.AutoAwesome, null, tint = Color(0xFFE1D6FF), modifier = Modifier.size(15.dp))
-                Text("IN THE SPOTLIGHT", color = Color(0xFFE1D6FF), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp)
+                Text("IN THE SPOTLIGHT", color = Color(0xFFE1D6FF), style = ArohaType.Eyebrow)
             }
             Column(Modifier.fillMaxWidth(0.82f)) {
-                Text(track.homeTitle(), color = Color.White, fontSize = 25.sp, lineHeight = 28.sp, fontWeight = FontWeight.Bold,
+                Text(track.homeTitle(), color = Color.White, style = MaterialTheme.typography.headlineSmall,
                     maxLines = 2, overflow = TextOverflow.Ellipsis)
-                Text(track.artist, color = Color.White.copy(alpha = 0.78f), fontSize = 12.sp,
+                Text(track.artist, color = Color.White.copy(alpha = 0.78f), style = ArohaType.Metadata,
                     maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 6.dp))
             }
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("Discover $country", color = Color.White.copy(alpha = 0.75f), fontSize = 11.sp, maxLines = 1,
+                Text("Discover $country", color = Color.White.copy(alpha = 0.75f), style = ArohaType.Caption, maxLines = 1,
                     overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                 Surface(shape = CircleShape, color = Color.White) {
                     MusicIcon(Icons.Rounded.PlayArrow, "Play spotlight", tint = Color(0xFF15131F), modifier = Modifier.padding(11.dp).size(26.dp))
@@ -103,9 +103,9 @@ internal fun ContinueListeningCard(vm: MusicViewModel) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Artwork(track, Modifier.size(62.dp))
             Column(Modifier.weight(1f).padding(horizontal = 14.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                Text(track.homeTitle(), fontWeight = FontWeight.SemiBold, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(track.artist, color = Muted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text("${position / 60_000}:${(position / 1000 % 60).toString().padStart(2, '0')} into your session", color = Lavender, fontSize = 10.sp)
+                Text(track.homeTitle(), style = ArohaType.TrackTitle, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(track.artist, color = Muted, style = ArohaType.Metadata, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text("${position / 60_000}:${(position / 1000 % 60).toString().padStart(2, '0')} into your session", color = Lavender, style = ArohaType.Caption)
             }
             MusicIcon(if (current != null && playback.playing) Icons.Rounded.PauseCircleFilled else Icons.Rounded.PlayCircleFilled,
                 if (current != null && playback.playing) "Pause session" else "Resume session", tint = Lavender, modifier = Modifier.size(38.dp))
@@ -121,7 +121,7 @@ internal fun HomeTrackContent(state: ContentState<Track>, retry: () -> Unit, qui
         when {
             state.items.isNotEmpty() -> {
                 content()
-                if (state.error != null) Text("Couldn't update. Showing your last discoveries.", color = Muted, fontSize = 12.sp,
+                if (state.error != null) Text("Couldn't update. Showing your last discoveries.", color = Muted, style = ArohaType.Metadata,
                     modifier = Modifier.padding(horizontal = 22.dp))
             }
             !state.loading -> Box(Modifier.padding(horizontal = 22.dp)) {
@@ -140,12 +140,12 @@ internal fun HomeSongShelf(tracks: List<Track>, ranked: Boolean = false, onPlay:
                 .shelfMotion(shelf, track.id).cardPress("Play ${track.title}") { onPlay(track) }) {
                 Box(Modifier.size(160.dp).clip(RoundedCornerShape(12.dp)).background(Glass)) {
                     CoverImage(track.artwork, null, Modifier.matchParentSize(), rounded = false)
-                    if (ranked) Text((index + 1).toString().padStart(2, '0'), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White,
+                    if (ranked) Text((index + 1).toString().padStart(2, '0'), style = ArohaType.Timestamp, color = Color.White,
                         modifier = Modifier.padding(10.dp).background(Color.Black.copy(alpha = 0.65f), RoundedCornerShape(8.dp)).padding(horizontal = 8.dp, vertical = 5.dp))
                 }
-                Text(track.homeTitle(), fontWeight = FontWeight.SemiBold, fontSize = 14.sp, lineHeight = 19.sp, minLines = 2, maxLines = 2, overflow = TextOverflow.Ellipsis,
+                Text(track.homeTitle(), style = ArohaType.CardTitle, minLines = 2, maxLines = 2, overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(top = 8.dp))
-                Text(listOf("Song", track.artist).filter { it.isNotBlank() }.joinToString(" • "), color = Muted, fontSize = 12.sp,
+                Text(listOf("Song", track.artist).filter { it.isNotBlank() }.joinToString(" • "), color = Muted, style = ArohaType.Metadata,
                     lineHeight = 17.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 3.dp))
             }
         }
@@ -174,7 +174,7 @@ fun RecentSearchShelf(searches: List<String>, horizontalPadding: Dp = 22.dp, onR
             Surface(onClick = { onSearch(query) }, shape = CircleShape, color = Glass) {
                 Row(Modifier.padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                     MusicIcon(Icons.Rounded.History, null, tint = Muted, modifier = Modifier.size(15.dp))
-                    Text(query, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    Text(query, style = ArohaType.Chip, maxLines = 1, overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.padding(start = 7.dp).widthIn(max = 180.dp))
                     onRemove?.let { remove -> Glyph(Icons.Rounded.Close, "Remove recent search $query") { remove(query) } }
                 }
@@ -193,8 +193,8 @@ private fun HomeEmpty(title: String, subtitle: String, icon: ImageVector) {
     Row(Modifier.fillMaxWidth().glass(22).padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
         MusicIcon(icon, null, tint = Lavender, modifier = Modifier.size(26.dp))
         Column(Modifier.padding(start = 14.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-            Text(title, fontSize = 13.sp, fontWeight = FontWeight.Medium)
-            Text(subtitle, color = Muted, fontSize = 11.sp)
+            Text(title, style = ArohaType.CardTitle)
+            Text(subtitle, color = Muted, style = ArohaType.Caption)
         }
     }
 }
@@ -233,8 +233,8 @@ internal fun CategoryShelf(categories: List<HomeCategory>, onSelect: (HomeCatego
                 .motionClickable { onSelect(category) }.padding(16.dp)) {
                 MusicIcon(category.icon, null, tint = Color.White.copy(alpha = 0.18f), modifier = Modifier.align(Alignment.TopEnd).size(43.dp))
                 Column(Modifier.align(Alignment.BottomStart), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                    Text(category.title, color = Color.White, fontSize = 19.sp, fontWeight = FontWeight.Bold)
-                    Text(category.detail, color = Color.White, fontSize = 10.sp)
+                    Text(category.title, color = Color.White, style = ArohaType.ActionTitle)
+                    Text(category.detail, color = Color.White, style = ArohaType.Caption)
                 }
             }
         }
@@ -251,13 +251,13 @@ fun HomeCountryPicker(region: MusicRegion?, override: String?, onSelect: (String
     ArohaSheet(onDismissRequest = onClose, containerColor = Ink, artworkBackdrop = true, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         ThemeSheetSystemBars()
         Column(Modifier.fillMaxWidth().navigationBarsPadding().imePadding().padding(horizontal = 22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("Your music, your region", fontWeight = FontWeight.Bold, fontSize = 23.sp)
-            Text("Choose the country for home discoveries. Automatic uses your mobile network, SIM or device region.", color = Muted, fontSize = 12.sp)
+            Text("Your music, your region", style = ArohaType.PageTitle)
+            Text("Choose the country for home discoveries. Automatic uses your mobile network, SIM or device region.", color = Muted, style = ArohaType.Metadata)
             Row(Modifier.fillMaxWidth().glass(18).motionClickable { onSelect(null); onClose() }.padding(15.dp), verticalAlignment = Alignment.CenterVertically) {
                 MusicIcon(Icons.Rounded.Public, null, tint = Lavender)
                 Column(Modifier.weight(1f).padding(start = 13.dp)) {
                     Text("Automatic", fontWeight = FontWeight.SemiBold)
-                    Text(if (override == null) "${region?.displayName() ?: "Device region"} · ${region?.source?.label.orEmpty()}" else "Detect from this device", color = Muted, fontSize = 11.sp)
+                    Text(if (override == null) "${region?.displayName() ?: "Device region"} · ${region?.source?.label.orEmpty()}" else "Detect from this device", color = Muted, style = ArohaType.Caption)
                 }
                 if (override == null) MusicIcon(Icons.Rounded.Check, "Selected", tint = Lavender)
             }
@@ -268,7 +268,7 @@ fun HomeCountryPicker(region: MusicRegion?, override: String?, onSelect: (String
                     Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).motionClickable { onSelect(code); onClose() }.padding(vertical = 15.dp, horizontal = 8.dp),
                         verticalAlignment = Alignment.CenterVertically) {
                         Text(MusicRegion(code).flag, fontSize = 22.sp)
-                        Text(name, Modifier.weight(1f).padding(start = 14.dp), fontSize = 14.sp)
+                        Text(name, Modifier.weight(1f).padding(start = 14.dp), style = ArohaType.SettingTitle)
                         if (override == code) MusicIcon(Icons.Rounded.Check, "Selected", tint = Lavender)
                     }
                 }

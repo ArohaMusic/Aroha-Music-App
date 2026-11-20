@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Unify typography around the bundled Plus Jakarta Sans family and a shared scale for headings, song titles, artist metadata, buttons, menus and Settings.
+- Improve small-text readability, soften heavy headings, match plain and synced lyric fonts, and adapt player and spotlight layouts to Android font scaling.
 - Redesign song and Glimpses action menus with a fixed song header, quick actions, grouped controls and clearer quality selection.
 - Keep Glimpses playing while action, playlist and quality panels are open; preserve a manually paused preview when opening or closing settings.
 - Center lyrics and their loading placeholders by default; format untimed lyrics into readable verses and simplify the provider footer.

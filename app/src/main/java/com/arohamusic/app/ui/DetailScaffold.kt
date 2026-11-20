@@ -13,7 +13,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
@@ -61,7 +60,7 @@ internal fun DetailScaffold(title: String, subtitle: String, list: LazyListState
                         // The artwork is drawn once in the overlay; this reserves its scroll space.
                         Spacer(Modifier.size(expandedSize))
                         Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text(title, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                            Text(title, style = ArohaType.PageTitle)
                             Text(subtitle, color = Muted, style = MaterialTheme.typography.bodyMedium)
                         }
                     }

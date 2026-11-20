@@ -18,7 +18,6 @@ import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.*
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
@@ -64,7 +63,7 @@ fun DiscoveryScreen(vm: MusicViewModel, mood: String, onMood: (String) -> Unit, 
             item(key = "header", contentType = "header") {
                 Row(Modifier.fillMaxWidth().padding(horizontal = 22.dp), verticalAlignment = Alignment.CenterVertically) {
                     AnimatedBrandMark(Modifier.size(30.dp))
-                    Text(androidx.compose.ui.res.stringResource(com.arohamusic.app.R.string.app_name), fontSize = 22.sp, letterSpacing = (-.6).sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 8.dp))
+                    Text(androidx.compose.ui.res.stringResource(com.arohamusic.app.R.string.app_name), style = ArohaType.Brand, modifier = Modifier.padding(start = 8.dp))
                     Spacer(Modifier.weight(1f))
                     Glyph(Icons.Outlined.Search, "Search", onClick = { onSearch("") })
                     Glyph(Icons.Outlined.Tune, "Settings", onClick = onSettings)
@@ -85,8 +84,8 @@ fun DiscoveryScreen(vm: MusicViewModel, mood: String, onMood: (String) -> Unit, 
             }
             item(key = "greeting", contentType = "header") {
                 Column(Modifier.padding(horizontal = 22.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(greeting.title, fontSize = 23.sp, lineHeight = 28.sp, fontWeight = FontWeight.Bold)
-                    Text(greeting.message, fontSize = 12.sp, color = Muted)
+                    Text(greeting.title, style = MaterialTheme.typography.headlineSmall)
+                    Text(greeting.message, style = ArohaType.Metadata, color = Muted)
                 }
             }
             itemsIndexed(sections, key = { _, section -> section }, contentType = { _, _ -> "home-section" }) { index, section ->
@@ -116,7 +115,7 @@ fun DiscoveryScreen(vm: MusicViewModel, mood: String, onMood: (String) -> Unit, 
                             HomeHeading("Artists", "Follow the voices you love")
                             LazyRow(contentPadding = PaddingValues(horizontal = 22.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                                 items(artists, key = { it }) { name -> Column(Modifier.width(100.dp).motionClickable { vm.openArtist(name) }, horizontalAlignment = Alignment.CenterHorizontally) {
-                                    ArtistPortrait(vm, name, Modifier.size(96.dp).clip(CircleShape)); Text(name, fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
+                                    ArtistPortrait(vm, name, Modifier.size(96.dp).clip(CircleShape)); Text(name, style = ArohaType.Caption, modifier = Modifier.padding(top = 8.dp))
                                 } }
                             }
                         }
@@ -160,10 +159,10 @@ private fun QuickPickShelf(songs: List<Track>, activeId: String?, onPlay: (Track
     LaunchedEffect(pages.size) { if (pages.isNotEmpty() && shelf.firstVisibleItemIndex > pages.lastIndex) shelf.scrollToItem(pages.lastIndex) }
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Row(Modifier.fillMaxWidth().padding(start = 22.dp, end = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("Quick picks", fontSize = 22.sp, letterSpacing = (-.5).sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+            Text("Quick picks", style = ArohaType.SectionTitle, modifier = Modifier.weight(1f))
             MotionOutlinedButton(onClick = onPlayAll, shape = CircleShape, contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
                 border = BorderStroke(1.dp, Muted.copy(alpha = .3f)), colors = ButtonDefaults.outlinedButtonColors(contentColor = ContentColor)) {
-                Text("Play all", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                Text("Play all", style = ArohaType.Control)
             }
             MotionOutlinedIconButton(onClick = { scope.launch { shelf.animateScrollToItem((shelf.firstVisibleItemIndex - 1).coerceAtLeast(0)) } },
                 enabled = shelf.canScrollBackward, modifier = Modifier.padding(start = 6.dp).size(40.dp)) {
@@ -188,9 +187,9 @@ private fun QuickPickShelf(songs: List<Track>, activeId: String?, onPlay: (Track
                                 CoverImage(song.artwork, "Artwork for ${song.title}", Modifier.size(56.dp).clip(RoundedCornerShape(5.dp)), rounded = false)
                                 Column(Modifier.weight(1f).padding(start = 12.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                                     Text(song.homeTitle(), color = if (song.id == activeId) Lavender else ContentColor,
-                                        fontSize = 14.sp, lineHeight = 19.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                        style = ArohaType.TrackTitle, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                     Text(listOf(song.artist, song.album).filter { it.isNotBlank() }.distinct().joinToString(" • "),
-                                        color = Muted, fontSize = 12.sp, lineHeight = 17.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                        color = Muted, style = ArohaType.Metadata, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 }
                                 MotionIconButton(onClick = { onMore(song) }, modifier = Modifier.size(40.dp)) {
                                     MusicIcon(Icons.Outlined.MoreVert, "Options for ${song.title}", tint = Muted, modifier = Modifier.size(20.dp))

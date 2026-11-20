@@ -17,7 +17,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.*
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -101,7 +100,7 @@ private fun NowPlayingContent(vm: MusicViewModel, track: Track, onQueue: () -> U
     BoxWithConstraints(Modifier.fillMaxSize()) {
         AmbientPlayerBackdrop(track.artwork, Modifier.matchParentSize())
         val viewportHeight = maxHeight
-        val compactViewport = maxHeight < 520.dp
+        val compactViewport = maxHeight / androidx.compose.ui.platform.LocalDensity.current.fontScale.coerceAtLeast(1f) < 520.dp
         LaunchedEffect(apple) { if (apple) list.scrollToItem(0) }
         LazyColumn(state = list, userScrollEnabled = !apple, modifier = Modifier.fillMaxSize()
             .then(if (apple) Modifier else Modifier.scrollPanelGestures(onClose))
@@ -124,7 +123,7 @@ private fun NowPlayingContent(vm: MusicViewModel, track: Track, onQueue: () -> U
                     PlayerViewport(Modifier.fillMaxSize(), header = {
                         Row(Modifier.fillMaxWidth().panelHeaderGestures(onClose).padding(horizontal = 12.dp, vertical = if (compactViewport) 0.dp else 6.dp), verticalAlignment = Alignment.CenterVertically) {
                             Glyph(PlayerIcons.Collapse, "Close player", ContentColor, onClick = onClose)
-                            Text("NOW PLAYING", Modifier.weight(1f), style = MaterialTheme.typography.labelSmall,
+                            Text("NOW PLAYING", Modifier.weight(1f), style = ArohaType.Eyebrow,
                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                             if (!apple) AudioOutputButton()
                             Glyph(if (apple) Icons.Rounded.MoreHoriz else PlayerIcons.More, "Song options", ContentColor) { onMore(track) }
@@ -158,7 +157,7 @@ private fun NowPlayingContent(vm: MusicViewModel, track: Track, onQueue: () -> U
                             if (state.error != null) SectionFailure(state.error!!) { vm.player.toggle() }
                             Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Column(Modifier.weight(1f)) {
-                                    PlayerMarquee(track.title, Modifier.fillMaxWidth().playerTitle(track.id), fontSize = if (compactViewport) 20.sp else if (apple) 30.sp else 26.sp, fontWeight = if (apple) FontWeight.ExtraBold else FontWeight.Bold)
+                                    PlayerMarquee(track.title, Modifier.fillMaxWidth().playerTitle(track.id), style = if (compactViewport) ArohaType.PlayerTitleCompact else if (apple) ArohaType.PlayerTitle else ArohaType.PlayerTitleRegular)
                                     PlayerArtistLine(artists, onArtist)
                                 }
                                 FavoriteButton(track.id in library.favorites,
@@ -214,7 +213,7 @@ private fun NowPlayingContent(vm: MusicViewModel, track: Track, onQueue: () -> U
                 Row(Modifier.fillMaxWidth().padding(horizontal = 22.dp, vertical = 20.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text("Up next", style = MaterialTheme.typography.headlineMedium)
-                        Text(if (state.recommendationChain) "Endless radio · ${upcoming.size} ready to play" else "${upcoming.size} songs in your queue", color = Muted, fontSize = 12.sp)
+                        Text(if (state.recommendationChain) "Endless radio · ${upcoming.size} ready to play" else "${upcoming.size} songs in your queue", color = Muted, style = ArohaType.Metadata)
                     }
                     Glyph(PlayerIcons.Queue, "Edit queue", onClick = onQueue)
                     Glyph(PlayerIcons.More, "Up next settings") { onMore(track) }
@@ -237,7 +236,7 @@ private fun NowPlayingContent(vm: MusicViewModel, track: Track, onQueue: () -> U
                 Row(Modifier.fillMaxWidth().padding(horizontal = 22.dp, vertical = 18.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text("Discover more", style = MaterialTheme.typography.titleLarge)
-                        Text("Keep exploring music that fits this song", color = Muted, fontSize = 12.sp)
+                        Text("Keep exploring music that fits this song", color = Muted, style = ArohaType.Metadata)
                     }
                     Glyph(PlayerIcons.More, "Suggestion settings") { onMore(track) }
                 }
@@ -297,7 +296,7 @@ private fun InlinePlayerQueue(vm: MusicViewModel, track: Track, upcoming: List<P
     val suggestions by vm.playerSuggestions.collectAsStateWithLifecycle()
     Column(Modifier.fillMaxSize().padding(horizontal = 12.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text("Playing next", Modifier.weight(1f), fontWeight = FontWeight.Bold)
+            Text("Playing next", Modifier.weight(1f), style = ArohaType.SectionTitle)
             Glyph(PlayerIcons.Shuffle, if (state.shuffle) "Shuffle on. Turn off" else "Shuffle off. Turn on", if (state.shuffle) ContentColor else Muted, vm.player::shuffle)
             PlaybackModeButton(if (state.repeat == Player.REPEAT_MODE_ONE) PlayerIcons.RepeatOne else PlayerIcons.Repeat, state.repeat != Player.REPEAT_MODE_OFF, "Change repeat mode", vm.player::repeat)
             Glyph(Icons.Rounded.Fullscreen, "Expand playing next", onClick = expand)
@@ -312,7 +311,7 @@ private fun InlinePlayerQueue(vm: MusicViewModel, track: Track, upcoming: List<P
                 if (state.recommendationError != null) SectionFailure(state.recommendationError!!) { vm.player.retryRadio() }
                 if (upcoming.isEmpty() && !state.recommendationLoading) MotionTextButton(onClick = { vm.startRadio(track) }) { Text("Start endless radio") }
             }
-            item(key = "discover") { Text("Discover more", fontWeight = FontWeight.Bold, modifier = Modifier.padding(vertical = 16.dp)) }
+            item(key = "discover") { Text("Discover more", style = ArohaType.SectionTitle, modifier = Modifier.padding(vertical = 16.dp)) }
             items(suggestions.items, key = { "inline-suggestion-${it.id}" }) { song ->
                 TrackRow(song, showFavorite = false, onPlay = { vm.play(song) }, onFavorite = { vm.favorite(song) }, onMore = { onMore(song) })
             }
@@ -357,7 +356,7 @@ private fun PlayerProgress(vm: MusicViewModel, track: Track, compact: Boolean) {
         onPreview = { preview = it }, onSeek = { vm.player.seek(it); preview = null })
     }
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(timeLabel(preview ?: state.position), color = Muted, fontSize = 11.sp)
-        Text(timeLabel(duration), color = Muted, fontSize = 11.sp)
+        Text(timeLabel(preview ?: state.position), color = Muted, style = ArohaType.Timestamp)
+        Text(timeLabel(duration), color = Muted, style = ArohaType.Timestamp)
     }
 }

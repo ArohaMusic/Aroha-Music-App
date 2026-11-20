@@ -17,8 +17,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.Alignment
 import androidx.compose.material3.Text
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.sp
 
 /** Reserve shelf geometry while replacing a placeholder, including its two title lines. */
 @Composable
@@ -37,7 +35,7 @@ private fun QuickPickSkeletons() = SkeletonGroup {
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Row(Modifier.fillMaxWidth().height(48.dp).padding(start = 22.dp, end = 14.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("Quick picks", Modifier.weight(1f), color = ContentColor, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text("Quick picks", Modifier.weight(1f), color = ContentColor, style = ArohaType.SectionTitle)
             SkeletonBox(Modifier.size(78.dp, 40.dp), 50)
             repeat(2) { SkeletonBox(Modifier.size(40.dp), 50) }
         }

@@ -80,7 +80,7 @@ internal fun LazyListScope.libraryInsights(vm: MusicViewModel, features: Feature
                             verticalArrangement = Arrangement.Bottom, horizontalAlignment = Alignment.CenterHorizontally) {
                             Box(Modifier.fillMaxWidth().height((bucket.milliseconds.toFloat() / peak * 110).coerceAtLeast(4f).dp)
                                 .motionBar("activity-${bucket.start}").background(ContentColor, RoundedCornerShape(5.dp)))
-                            Text(bucket.start.format(DateTimeFormatter.ofPattern("d MMM")), fontSize = 9.sp, color = Muted, modifier = Modifier.padding(top = 8.dp))
+                            Text(bucket.start.format(DateTimeFormatter.ofPattern("d MMM")), style = ArohaType.Navigation, color = Muted, modifier = Modifier.padding(top = 8.dp))
                         }
                     }
                 }

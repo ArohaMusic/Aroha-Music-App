@@ -46,15 +46,33 @@ class LyricsRendererTest {
             val peaks = MutableList(3) { 0 }
             val ink = MutableList(3) { 0 }
             var signature = 1L
-            for (y in bounds.top.coerceAtLeast(0) until bounds.bottom.coerceAtMost(bitmap.height)) {
-                val row = ((y - bounds.top) * 3 / bounds.height()).coerceIn(0, 2)
-                for (x in bounds.left.coerceAtLeast(0) until bounds.right.coerceAtMost(bitmap.width)) {
-                    val pixel = bitmap.getPixel(x, y)
+            val pixels = IntArray(bounds.width() * bounds.height())
+            bitmap.getPixels(pixels, 0, bounds.width(), bounds.left, bounds.top, bounds.width(), bounds.height())
+            val rowPeaks = IntArray(bounds.height())
+            val rowInk = IntArray(bounds.height())
+            for (y in 0 until bounds.height()) {
+                for (x in 0 until bounds.width()) {
+                    val pixel = pixels[y * bounds.width() + x]
                     val brightness = android.graphics.Color.red(pixel) + android.graphics.Color.green(pixel) + android.graphics.Color.blue(pixel)
-                    peaks[row] = maxOf(peaks[row], brightness)
-                    if (brightness > 300) ink[row]++
+                    rowPeaks[y] = maxOf(rowPeaks[y], brightness)
+                    if (brightness > 300) rowInk[y]++
                     signature = signature * 31 + pixel
                 }
+            }
+            // Font ascents, descents and padding do not divide a paragraph into equal
+            // thirds. Measure the three rendered glyph bands to avoid assigning the
+            // live word's pixels to the preceding line after a font change.
+            val bands = mutableListOf<IntRange>()
+            val gap = (2 * app.resources.displayMetrics.density).toInt().coerceAtLeast(2)
+            for (y in rowInk.indices.filter { rowInk[it] > 0 }) {
+                val previous = bands.lastOrNull()
+                if (previous != null && y - previous.last <= gap) bands[bands.lastIndex] = previous.first..y
+                else bands += y..y
+            }
+            assertEquals("All three lyric lines must remain visible: $name", 3, bands.size)
+            bands.forEachIndexed { index, rows ->
+                peaks[index] = rows.maxOf { rowPeaks[it] }
+                ink[index] = rows.sumOf { rowInk[it] }
             }
             File(app.getExternalFilesDir(null), "word-state-$name.png").outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
             bitmap.recycle()

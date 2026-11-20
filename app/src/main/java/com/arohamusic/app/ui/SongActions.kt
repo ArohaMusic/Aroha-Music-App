@@ -16,10 +16,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.offline.Download
@@ -32,9 +30,9 @@ internal fun SongActionsHeader(track: Track, artist: String = track.artist,
         horizontalArrangement = Arrangement.spacedBy(14.dp)) {
         Artwork(track, Modifier.size(64.dp))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(track.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
+            Text(track.title, style = ArohaType.ActionTitle,
                 maxLines = 2, overflow = TextOverflow.Ellipsis)
-            Text(artist, color = Muted, style = MaterialTheme.typography.bodySmall,
+            Text(artist, color = Muted, style = ArohaType.Metadata,
                 maxLines = 2, overflow = TextOverflow.Ellipsis)
         }
         Glyph(Icons.Rounded.Close, closeLabel, onClick = onClose)
@@ -44,8 +42,7 @@ internal fun SongActionsHeader(track: Track, artist: String = track.artist,
 @Composable
 internal fun ActionMenuGroup(title: String? = null, content: @Composable ColumnScope.() -> Unit) {
     Column(Modifier.fillMaxWidth().padding(top = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (title != null) Text(title, Modifier.padding(start = 12.dp), color = Muted,
-            fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+        if (title != null) Text(title, Modifier.padding(start = 12.dp), color = Muted, style = ArohaType.GroupLabel)
         Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp))
             .background(ContentColor.copy(alpha = .055f)).padding(4.dp), content = content)
     }
@@ -60,7 +57,7 @@ internal fun ActionMenuRow(icon: ImageVector, label: String, destructive: Boolea
         Box(Modifier.size(36.dp).background(tint.copy(alpha = .075f), RoundedCornerShape(11.dp)), contentAlignment = Alignment.Center) {
             Icon(icon, null, Modifier.size(21.dp), tint = tint)
         }
-        Text(label, Modifier.weight(1f), color = tint, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+        Text(label, Modifier.weight(1f), color = tint, style = ArohaType.ActionLabel)
         Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, Modifier.size(18.dp), tint = tint.copy(alpha = .4f))
     }
 }
@@ -71,7 +68,7 @@ internal fun RowScope.ActionMenuShortcut(icon: ImageVector, label: String, onCli
         .motionClickable(onClick = onClick).padding(horizontal = 6.dp, vertical = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Icon(icon, null, Modifier.size(24.dp), tint = Lavender)
-        Text(label, color = ContentColor, fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
+        Text(label, color = ContentColor, style = ArohaType.Chip,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center, minLines = 2)
     }
 }

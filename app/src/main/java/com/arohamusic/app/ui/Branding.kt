@@ -10,9 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.arohamusic.app.R
 
 /** Original launcher artwork, animated without an extra bitmap decoder or replacement logo. */
@@ -32,7 +30,7 @@ internal fun AnimatedBrandMark(modifier: Modifier = Modifier) {
 internal fun MusicCategoryChip(label: String, selected: Boolean,
     leadingIcon: (@Composable () -> Unit)? = null, onClick: () -> Unit) {
     FilterChip(selected = selected, onClick = onClick,
-        label = { Text(label, fontSize = 12.sp, fontWeight = FontWeight.Medium) }, leadingIcon = leadingIcon,
+        label = { Text(label, style = ArohaType.Chip) }, leadingIcon = leadingIcon,
         shape = RoundedCornerShape(10.dp), border = null,
         colors = FilterChipDefaults.filterChipColors(containerColor = Glass, labelColor = ContentColor,
             selectedContainerColor = ContentColor, selectedLabelColor = Ink))

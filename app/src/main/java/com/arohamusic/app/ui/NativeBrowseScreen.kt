@@ -11,7 +11,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
 import androidx.media3.common.util.UnstableApi
@@ -34,7 +33,7 @@ fun NativeBrowseScreen(vm: MusicViewModel, page: BrowsePageState, onMore: (Track
                     Glyph(Icons.AutoMirrored.Rounded.ArrowBack, "Back to Home", onClick = onClose)
                     Column(Modifier.weight(1f).padding(start = 8.dp)) {
                         Text(if (page.mood) "MUSIC FOR YOUR MOMENT" else "EXPLORE A SOUND", color = Lavender, style = MaterialTheme.typography.labelSmall)
-                        Text(page.title, style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
+                        Text(page.title, style = ArohaType.HeroTitle)
                     }
                     Glyph(Icons.Rounded.Refresh, "Refresh ${page.title}", onClick = retry)
                 }
@@ -63,7 +62,7 @@ fun NativeBrowseScreen(vm: MusicViewModel, page: BrowsePageState, onMore: (Track
                     items(artists, key = { it }, contentType = { "artist" }) { name ->
                         Column(Modifier.width(112.dp).motionClickable { vm.openArtist(name) }, horizontalAlignment = Alignment.CenterHorizontally) {
                             ArtistPortrait(vm, name, Modifier.size(104.dp).clip(CircleShape))
-                            Text(name, maxLines = 2, overflow = TextOverflow.Ellipsis, fontSize = 13.sp, modifier = Modifier.padding(top = 10.dp))
+                            Text(name, maxLines = 2, overflow = TextOverflow.Ellipsis, style = ArohaType.Metadata, modifier = Modifier.padding(top = 10.dp))
                         }
                     }
                 }

@@ -11,7 +11,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.*
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
@@ -54,7 +53,7 @@ fun AmbientPlayer(vm: MusicViewModel, track: Track, onClose: () -> Unit) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) { Glyph(Icons.Rounded.Close, "Exit ambient mode", onClick = onClose) }
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(20.dp)) {
             Artwork(track, Modifier.widthIn(max = 320.dp).fillMaxWidth().aspectRatio(1f), highQuality = true)
-            Text(track.title, fontSize = 25.sp, fontWeight = FontWeight.Bold, maxLines = 3, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+            Text(track.title, style = ArohaType.PlayerTitleRegular, maxLines = 3, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
             Text(track.artist, color = Muted, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
             AudioWaveform(state.playing)
         }

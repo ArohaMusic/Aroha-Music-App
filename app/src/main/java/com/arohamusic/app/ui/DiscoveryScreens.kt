@@ -43,7 +43,7 @@ import kotlinx.coroutines.launch
 fun SectionHeading(title: String, subtitle: String) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(title, style = MaterialTheme.typography.titleLarge)
-        Text(subtitle, style = MaterialTheme.typography.bodySmall, color = Muted, fontSize = 12.sp, lineHeight = 17.sp)
+        Text(subtitle, style = ArohaType.Caption, color = Muted)
     }
 }
 
@@ -66,10 +66,10 @@ fun CollectionCard(collection: BrowseCollection, modifier: Modifier = Modifier, 
         Box(Modifier.size(160.dp).clip(androidx.compose.foundation.shape.RoundedCornerShape(12.dp)).background(Glass)) {
             CoverImage(collection.thumbnailUrl, collection.title, Modifier.matchParentSize().browseArtwork("collection-${collection.id}"), rounded = false)
         }
-        Text(collection.title, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, lineHeight = 19.sp, minLines = 2, maxLines = 2, overflow = TextOverflow.Ellipsis,
+        Text(collection.title, style = ArohaType.CardTitle, minLines = 2, maxLines = 2, overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(top = 8.dp))
         Text(listOf(if (collection.kind == CollectionKind.ALBUM) "Album" else "Playlist", collection.artist)
-            .filter { it.isNotBlank() }.joinToString(" • "), color = Muted, fontSize = 12.sp, lineHeight = 17.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
+            .filter { it.isNotBlank() }.joinToString(" • "), color = Muted, style = ArohaType.Caption, maxLines = 1, overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(top = 3.dp))
     }
 }
@@ -82,9 +82,9 @@ fun SongShelf(tracks: List<Track>, onPlay: (Track) -> Unit) {
             Column(Modifier.width(150.dp).then(motionItem()).motionReveal("shelf-${track.id}")
                 .shelfMotion(shelf, track.id).motionClickable { onPlay(track) }) {
                 Artwork(track, Modifier.size(150.dp))
-                Text(track.title, fontSize = 13.sp, lineHeight = 17.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis,
+                Text(track.title, style = ArohaType.CardTitle, maxLines = 2, overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(top = 8.dp))
-                Text(track.artist, fontSize = 10.sp, lineHeight = 14.sp, color = Muted, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                Text(track.artist, style = ArohaType.Caption, color = Muted, maxLines = 1, overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(top = 3.dp))
             }
         }
@@ -94,7 +94,7 @@ fun SongShelf(tracks: List<Track>, onPlay: (Track) -> Unit) {
 @Composable
 fun SectionFailure(message: String, onRetry: () -> Unit) {
     Row(Modifier.fillMaxWidth().motionReveal("failure-$message").glass(18).padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(message, Modifier.weight(1f), color = Muted, fontSize = 12.sp, maxLines = 3, overflow = TextOverflow.Ellipsis)
+        Text(message, Modifier.weight(1f), color = Muted, style = ArohaType.Metadata, maxLines = 3, overflow = TextOverflow.Ellipsis)
         MotionTextButton(onClick = onRetry) { Text("Retry") }
     }
 }
@@ -252,8 +252,8 @@ fun MusicSearchScreen(vm: MusicViewModel, onMore: (Track) -> Unit, focusRequest:
                             }.padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                                 CoverImage(entry.profile.imageUrl, entry.profile.name, Modifier.size(64.dp).clip(CircleShape).browseArtwork("artist-${entry.profile.name.lowercase(java.util.Locale.ROOT)}"))
                                 Column(Modifier.weight(1f).padding(start = 14.dp)) {
-                                    Text(entry.profile.name, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                    Text("Artist", color = Muted, fontSize = 12.sp)
+                                    Text(entry.profile.name, style = ArohaType.TrackTitle, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    Text("Artist", color = Muted, style = ArohaType.Metadata)
                                 }
                             }
                             is SearchEntry.CollectionResult -> Row(Modifier.fillMaxWidth().motionClickable {
@@ -261,8 +261,8 @@ fun MusicSearchScreen(vm: MusicViewModel, onMore: (Track) -> Unit, focusRequest:
                             }.padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                                 CoverImage(entry.collection.thumbnailUrl, entry.collection.title, Modifier.size(64.dp).browseArtwork("collection-${entry.collection.id}"))
                                 Column(Modifier.weight(1f).padding(start = 12.dp)) {
-                                    Text(entry.collection.title, fontWeight = FontWeight.Bold)
-                                    Text("${if (entry.collection.kind == CollectionKind.ALBUM) "Album" else "Playlist"} · ${entry.collection.artist}", color = Muted, fontSize = 12.sp)
+                                    Text(entry.collection.title, style = ArohaType.TrackTitle)
+                                    Text("${if (entry.collection.kind == CollectionKind.ALBUM) "Album" else "Playlist"} · ${entry.collection.artist}", color = Muted, style = ArohaType.Metadata)
                                 }
                             }
                         } }
@@ -288,9 +288,8 @@ private fun SearchSongRow(track: Track, active: Boolean, enabled: Boolean = true
         .padding(horizontal = 8.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
         Artwork(track, Modifier.size(64.dp))
         Column(Modifier.weight(1f).padding(start = 12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(track.title, color = if (active) Lavender else ContentColor, fontWeight = FontWeight.Bold,
-                fontSize = 15.sp, lineHeight = 19.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
-            Text("Song · ${track.artist}", color = Muted, fontSize = 12.sp, lineHeight = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(track.title, color = if (active) Lavender else ContentColor, style = ArohaType.TrackTitle, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text("Song · ${track.artist}", color = Muted, style = ArohaType.Metadata, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         Glyph(Icons.Rounded.MoreHoriz, "Options for ${track.title}", onClick = onMore)
     }
@@ -303,13 +302,13 @@ private fun SearchVideoRow(track: Track, enabled: Boolean, onPlay: () -> Unit, o
             .motionClickable(enabled = enabled, onClickLabel = "Play audio for ${track.title}", onClick = onPlay)) {
             CoverImage(track.artwork, track.title, Modifier.matchParentSize(), rounded = false)
             if (track.durationSeconds > 0) Surface(Modifier.align(Alignment.BottomEnd).padding(8.dp), color = Color.Black.copy(alpha = .8f), shape = RoundedCornerShape(4.dp)) {
-                Text(timeLabel(track.durationSeconds * 1000), color = Color.White, fontSize = 11.sp, modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp))
+                Text(timeLabel(track.durationSeconds * 1000), color = Color.White, style = ArohaType.Timestamp, modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp))
             }
         }
         Row(Modifier.fillMaxWidth().motionClickable(enabled = enabled, onClick = onPlay).padding(top = 8.dp), verticalAlignment = Alignment.Top) {
             Column(Modifier.weight(1f)) {
-                Text(track.title, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                Text("Music video · ${track.artist}", color = Muted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 3.dp))
+                Text(track.title, style = ArohaType.TrackTitle, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text("Music video · ${track.artist}", color = Muted, style = ArohaType.Metadata, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 3.dp))
             }
             Glyph(Icons.Rounded.MoreVert, "Options for ${track.title}", onClick = onMore)
         }
@@ -323,7 +322,7 @@ private fun SearchSuggestionRow(query: String, onSearch: () -> Unit) {
         .padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
         MusicIcon(Icons.Rounded.Search, null, tint = Lavender, modifier = Modifier.size(20.dp))
         Column(Modifier.weight(1f).padding(horizontal = 12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(query, fontSize = 14.sp, lineHeight = 18.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(query, style = ArohaType.TrackTitle, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         MusicIcon(Icons.AutoMirrored.Rounded.ArrowForward, null, tint = Muted, modifier = Modifier.size(18.dp))
     }

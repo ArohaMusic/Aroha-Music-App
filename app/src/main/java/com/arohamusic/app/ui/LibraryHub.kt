@@ -18,7 +18,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -111,7 +110,7 @@ private fun LibraryContent(vm: MusicViewModel, playlistId: String?, onPlaylist: 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("Your library", style = MaterialTheme.typography.headlineLarge, color = ContentColor)
-                    Text("${library.savedTracks.size} songs · ${library.playlists.size} playlists", color = Muted, fontSize = 12.sp)
+                    Text("${library.savedTracks.size} songs · ${library.playlists.size} playlists", color = Muted, style = ArohaType.Metadata)
                 }
                 MotionFilledTonalIconButton(onClick = onCreate) { MusicIcon(Icons.Rounded.Add, "New playlist", tint = ContentColor) }
             }
@@ -168,7 +167,7 @@ private fun LibraryContent(vm: MusicViewModel, playlistId: String?, onPlaylist: 
                     Row(motionItem(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         group.forEach { p -> Column(Modifier.weight(1f).glass().cardPress("Open ${p.name}") { onPlaylist(p.id) }.padding(12.dp)) {
                             PlaylistArtwork(p, p.trackIds.mapNotNull(metadata::get), Modifier.fillMaxWidth().aspectRatio(1f).browseArtwork("local-${p.id}"))
-                            Text(p.name, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp)); Text("${p.trackIds.size} songs", color = Muted)
+                            Text(p.name, style = ArohaType.TrackTitle, modifier = Modifier.padding(top = 8.dp)); Text("${p.trackIds.size} songs", color = Muted)
                             Row { Glyph(if (p.id in features.experience.pinnedPlaylists) Icons.Rounded.PushPin else Icons.Rounded.PushPin, if (p.id in features.experience.pinnedPlaylists) "Unpin ${p.name}" else "Pin ${p.name}") { vm.pinPlaylist(p.id) }; Glyph(Icons.Rounded.MoreHoriz, "Edit ${p.name}") { info = p } }
                         } }
                         if (group.size == 1) Spacer(Modifier.weight(1f))
@@ -176,7 +175,7 @@ private fun LibraryContent(vm: MusicViewModel, playlistId: String?, onPlaylist: 
                 } else items(playlists, key = { it.id }, contentType = { "playlist" }) { p ->
                     Row(Modifier.fillMaxWidth().then(motionItem()).motionReveal("playlist-${p.id}").cardPress("Open ${p.name}") { onPlaylist(p.id) }.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                         PlaylistArtwork(p, p.trackIds.mapNotNull(metadata::get), Modifier.size(64.dp).browseArtwork("local-${p.id}"))
-                        Column(Modifier.weight(1f).padding(start = 15.dp)) { Text(p.name, fontWeight = FontWeight.Bold); Text("${p.trackIds.size} songs${if (p.folder.isBlank()) "" else " · ${p.folder}"}", color = Muted) }
+                        Column(Modifier.weight(1f).padding(start = 15.dp)) { Text(p.name, style = ArohaType.TrackTitle); Text("${p.trackIds.size} songs${if (p.folder.isBlank()) "" else " · ${p.folder}"}", color = Muted) }
                         Glyph(Icons.Rounded.PushPin, if (p.id in features.experience.pinnedPlaylists) "Unpin ${p.name}" else "Pin ${p.name}", if (p.id in features.experience.pinnedPlaylists) Lavender else Muted) { vm.pinPlaylist(p.id) }
                         Glyph(Icons.Rounded.MoreHoriz, "Edit ${p.name}") { info = p }
                     }
@@ -236,8 +235,8 @@ private fun LibraryShortcut(title: String, subtitle: String, icon: androidx.comp
             Box(Modifier.size(42.dp).background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(14.dp)), contentAlignment = Alignment.Center) {
                 MusicIcon(icon, null, tint = ContentColor, modifier = Modifier.size(22.dp))
             }
-            Text(title, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-            Text(subtitle, color = Muted, fontSize = 11.sp)
+            Text(title, style = ArohaType.TrackTitle)
+            Text(subtitle, color = Muted, style = ArohaType.Caption)
         }
     }
 }
@@ -282,7 +281,7 @@ fun ArtistDetail(vm: MusicViewModel, page: ArtistPageState, onMore: (Track) -> U
                         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Text(page.name, style = MaterialTheme.typography.headlineLarge, color = ContentColor,
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-                        if (page.profile?.verified == true) Text("Verified artist", color = Muted, fontSize = 12.sp)
+                        if (page.profile?.verified == true) Text("Verified artist", color = Muted, style = ArohaType.Metadata)
                         if (page.profileLoading) LinearProgressIndicator(Modifier.width(120.dp), color = ContentColor, trackColor = Muted.copy(alpha = .2f))
                     }
                 }
@@ -342,7 +341,7 @@ fun ArtistDetail(vm: MusicViewModel, page: ArtistPageState, onMore: (Track) -> U
                     items(page.related.items.take(10), key = { it }) { name ->
                         Column(Modifier.width(116.dp).motionClickable { vm.openArtist(name) }, horizontalAlignment = Alignment.CenterHorizontally) {
                             ArtistPortrait(vm, name, Modifier.size(112.dp).clip(androidx.compose.foundation.shape.CircleShape))
-                            Text(name, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, minLines = 2, maxLines = 2,
+                            Text(name, style = ArohaType.CardTitle, minLines = 2, maxLines = 2,
                                 overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 10.dp))
                         }
                     }
@@ -358,7 +357,7 @@ fun ArtistDetail(vm: MusicViewModel, page: ArtistPageState, onMore: (Track) -> U
                             MotionTextButton(onClick = { expandedBio = !expandedBio }) { Text(if (expandedBio) "Show less" else "Read more") }
                         }
                     }
-                    page.profileError?.let { Text(it, color = Muted, fontSize = 12.sp) }
+                    page.profileError?.let { Text(it, color = Muted, style = ArohaType.Metadata) }
                 }
             }
         }
@@ -393,5 +392,5 @@ private fun ArtistStat(value: String, label: String) {
         withStyle(SpanStyle(color = ContentColor, fontWeight = FontWeight.SemiBold)) { append(value) }
         append(" "); append(label)
     }
-    Text(text, color = Muted, fontSize = 12.sp, lineHeight = 18.sp, textAlign = TextAlign.Center)
+    Text(text, color = Muted, style = ArohaType.Caption, textAlign = TextAlign.Center)
 }

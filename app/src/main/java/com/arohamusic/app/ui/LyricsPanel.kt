@@ -19,7 +19,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.*
@@ -64,9 +63,9 @@ fun LyricsPanel(vm: MusicViewModel, track: Track, fullScreen: Boolean = false, e
             }
             Column(Modifier.weight(1f)) {
                 Text(if (embedded) "LYRICS" else track.title, color = Color.White,
-                    fontSize = if (embedded) 11.sp else 14.sp, fontWeight = FontWeight.SemiBold,
+                    style = if (embedded) ArohaType.Eyebrow else ArohaType.TrackTitle,
                     maxLines = 1, overflow = TextOverflow.Ellipsis)
-                if (!embedded) Text(track.artist, color = Color.White.copy(alpha = .50f), fontSize = 12.sp,
+                if (!embedded) Text(track.artist, color = Color.White.copy(alpha = .50f), style = ArohaType.Caption,
                     maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             if (!embedded) Glyph(Icons.Rounded.Tune, "Lyrics appearance and timing") { options = true }
@@ -75,7 +74,7 @@ fun LyricsPanel(vm: MusicViewModel, track: Track, fullScreen: Boolean = false, e
             Glyph(Icons.Rounded.Close, "Back to player", onClick = onClose)
         }
         if (prefs.lyricOffsetMs != 0L) Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text(lyricOffsetLabel(prefs.lyricOffsetMs), Modifier.weight(1f), color = Color.White.copy(alpha = .70f), fontSize = 12.sp)
+            Text(lyricOffsetLabel(prefs.lyricOffsetMs), Modifier.weight(1f), color = Color.White.copy(alpha = .70f), style = ArohaType.Caption)
             MotionTextButton(onClick = { vm.updateExperience { it.copy(lyricOffsetMs = 0) } }) { Text("Reset timing", color = Color.White) }
         }
         Box(Modifier.weight(1f).fillMaxWidth().expandLyricsOnRead(embedded) { follow = false; onToggleFullScreen() }) {
@@ -100,7 +99,7 @@ fun LyricsPanel(vm: MusicViewModel, track: Track, fullScreen: Boolean = false, e
             }
         }
         lyrics?.provider?.takeIf { !loading && it.isNotBlank() }?.let {
-            Text(it, color = Color.White.copy(alpha = .58f), fontSize = 11.sp,
+            Text(it, color = Color.White.copy(alpha = .58f), style = ArohaType.Caption,
                 textAlign = if (prefs.lyricCentered) TextAlign.Center else TextAlign.Start,
                 modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp))
         }
@@ -109,7 +108,7 @@ fun LyricsPanel(vm: MusicViewModel, track: Track, fullScreen: Boolean = false, e
     if (options) AlertDialog(onDismissRequest = { options = false }, title = { Text("Your lyrics") }, text = {
         Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             SettingsChoice("Lyric style", appearance.lyricStyle, LyricStyle.entries, { it.label }) { style -> vm.updateTheme { it.copy(lyricStyle = style) } }
-            Text(appearance.lyricStyle.description, color = Muted, fontSize = 12.sp)
+            Text(appearance.lyricStyle.description, color = Muted, style = ArohaType.Caption)
             SettingsChoice("Lyrics behavior", prefs.lyricBehavior, LyricBehavior.entries, { it.label }) { behavior -> vm.updateExperience { it.copy(lyricBehavior = behavior) } }
             SettingsChoice("Preferred provider", prefs.lyricProvider, LyricProvider.entries, { it.label }) { provider -> vm.updateExperience { it.copy(lyricProvider = provider) } }
             Row(verticalAlignment = Alignment.CenterVertically) { Text("Try other providers", Modifier.weight(1f)); Switch(prefs.lyricFallback, { enabled -> vm.updateExperience { it.copy(lyricFallback = enabled) } }) }
@@ -120,7 +119,7 @@ fun LyricsPanel(vm: MusicViewModel, track: Track, fullScreen: Boolean = false, e
             Row(verticalAlignment = Alignment.CenterVertically) { Text("Center text", Modifier.weight(1f)); Switch(prefs.lyricCentered, { enabled -> vm.updateExperience { it.copy(lyricCentered = enabled) } }) }
             var offset by remember(prefs.lyricOffsetMs) { mutableFloatStateOf(prefs.lyricOffsetMs.toFloat() / 1000) }
             Text(if (offset == 0f) "Original timing · 0.0 s" else lyricOffsetLabel((offset * 1_000).toLong()))
-            Text("Original timing follows the provider. This adjustment applies to every song.", color = Muted, fontSize = 12.sp)
+            Text("Original timing follows the provider. This adjustment applies to every song.", color = Muted, style = ArohaType.Caption)
             Slider(offset, { offset = it }, valueRange = -10f..10f, steps = 39, onValueChangeFinished = { vm.updateExperience { it.copy(lyricOffsetMs = (offset * 1000).toLong()) } })
             MotionTextButton(onClick = { vm.updateExperience { it.copy(lyricOffsetMs = 0) } }) { Text("Reset timing") }
         }
@@ -175,8 +174,8 @@ private fun LyricsPlaybackControls(vm: MusicViewModel) {
         PlaybackTimeline(state.position, state.duration, state.bufferedPosition, state.buffering,
             modifier = Modifier.fillMaxWidth(), interactive = true, onPreview = {}, onSeek = vm.player::seek)
         Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(timeLabel(state.position), color = Color.White.copy(alpha = .45f), fontSize = 11.sp)
-            Text(timeLabel(state.duration), color = Color.White.copy(alpha = .45f), fontSize = 11.sp)
+            Text(timeLabel(state.position), color = Color.White.copy(alpha = .45f), style = ArohaType.Caption)
+            Text(timeLabel(state.duration), color = Color.White.copy(alpha = .45f), style = ArohaType.Caption)
         }
         Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceEvenly) {
