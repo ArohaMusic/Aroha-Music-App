@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Add a personalized Home Speed Dial for playable pinned playlists, recent songs and favorites, with discovery results for new listeners.
+- Add New releases, Charts, Podcasts and Music videos browse tabs at the bottom of Home.
+- Show wide music-video cards on Home, linked artist pages and genre/mood pages; explicit video selections open the player without changing the default playback preference.
 - Keep song, album and playlist card labels to one title line and one subtitle line with ellipses, and match their loading placeholders.
 - Replace the player's multicolour blurred background with one restrained artwork tone, with a short colour dissolve on entry and song changes; respect reduced motion and retain the last tone while artwork loads.
 - Unify typography around the bundled Plus Jakarta Sans family and a shared scale for headings, song titles, artist metadata, buttons, menus and Settings.

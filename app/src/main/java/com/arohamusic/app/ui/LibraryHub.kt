@@ -316,6 +316,15 @@ fun ArtistDetail(vm: MusicViewModel, page: ArtistPageState, onMore: (Track) -> U
                     }
                 }
             }
+            if (page.videos.loading || page.videos.items.isNotEmpty() || page.videos.error != null) {
+                item(key = "artist-videos-heading") {
+                    HomeHeading("Music videos", "Watch ${page.name}")
+                }
+                item(key = "artist-video-shelf") {
+                    MusicVideoShelf(page.videos, { vm.openArtist(page.name, profile = page.profile) },
+                        { vm.play(it, watchVideo = true) }, onMore)
+                }
+            }
             if (page.albums.loading || page.albums.items.isNotEmpty() || page.albums.error != null) {
                 item { Text("Albums & releases", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(horizontal = 22.dp)) }
                 item(key = "artist-album-shelf") {

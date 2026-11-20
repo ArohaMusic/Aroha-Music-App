@@ -1,6 +1,6 @@
 package com.arohamusic.app.domain
 
-val defaultHomeSections = listOf("quick", "moods", "recent", "recommended", "trending", "releases", "playlists", "genres", "artists", "albums")
+val defaultHomeSections = listOf("quick", "moods", "recent", "recommended", "trending", "videos", "releases", "playlists", "genres", "artists", "albums")
 val defaultHomeMoods = listOf("For you", "Romance", "Dance", "Party", "Feel good", "Workout", "Relax", "Focus", "Sleep")
 data class ExperiencePreferences(
     val pinnedPlaylists: Set<String> = emptySet(),

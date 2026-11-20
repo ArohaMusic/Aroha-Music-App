@@ -24,7 +24,7 @@ import java.time.LocalDateTime
 
 internal val homeSectionNames = mapOf("quick" to "Quick picks", "moods" to "Music for your moment",
     "recent" to "Recently played", "recommended" to "Recommended", "trending" to "Trending", "releases" to "New releases",
-    "playlists" to "Popular playlists", "genres" to "Genres", "artists" to "Artists", "albums" to "Albums")
+    "playlists" to "Popular playlists", "genres" to "Genres", "artists" to "Artists", "albums" to "Albums", "videos" to "Music videos")
 
 @UnstableApi
 @Composable
@@ -33,6 +33,7 @@ fun DiscoveryScreen(vm: MusicViewModel, mood: String, onMood: (String) -> Unit, 
     val picks by vm.quickPicks.collectAsStateWithLifecycle()
     val trending by vm.homeTrending.collectAsStateWithLifecycle()
     val releases by vm.homeNewReleases.collectAsStateWithLifecycle()
+    val videos by vm.homeVideos.collectAsStateWithLifecycle()
     val playlists by vm.homePlaylists.collectAsStateWithLifecycle()
     val albums by vm.homeAlbums.collectAsStateWithLifecycle()
     val library by vm.library.collectAsStateWithLifecycle()
@@ -44,6 +45,7 @@ fun DiscoveryScreen(vm: MusicViewModel, mood: String, onMood: (String) -> Unit, 
     val activeId by vm.activeTrackId.collectAsStateWithLifecycle()
     val metadata by vm.trackIndex.collectAsStateWithLifecycle()
     val recent = remember(library.recentIds, metadata) { library.recentIds.mapNotNull(metadata::get).take(12) }
+    val speedDial = remember(library, experience.pinnedPlaylists, picks.items) { homeSpeedDial(library, experience.pinnedPlaylists, picks.items) }
     val artists = remember(picks.items, recent, experience.followedArtists) {
         (experience.followedArtists.toList() + (picks.items + recent).flatMap { com.arohamusic.app.data.youtube.ArtistNames.fallback(it.artist) }).distinct().take(16)
     }
@@ -85,10 +87,19 @@ fun DiscoveryScreen(vm: MusicViewModel, mood: String, onMood: (String) -> Unit, 
                     Text(greeting.message, style = ArohaType.Metadata, color = Muted)
                 }
             }
+            if (speedDial.isNotEmpty() || picks.loading) item(key = "speed-dial", contentType = "speed-dial") {
+                SpeedDialShelf(speedDial, picks.loading, { entry ->
+                    vm.play(entry.tracks.first(), entry.tracks, ordered = entry.playlist, recommendationChain = !entry.playlist)
+                }, onMore)
+            }
             itemsIndexed(sections, key = { _, section -> section }, contentType = { _, _ -> "home-section" }) { index, section ->
                 LaunchedEffect(section) { vm.requestHomeSection(section) }
                 EnterHomeSection(section, index) {
                     when (section) {
+                        "videos" -> {
+                            HomeHeading("Music videos", "Watch your next favorite", "See all") { vm.openHomeDestination(HomeDestination.VIDEOS) }
+                            MusicVideoShelf(videos, { vm.loadHome(mood, refresh = true) }, { vm.play(it, watchVideo = true) }, onMore)
+                        }
                         "quick", "trending", "releases", "recommended", "recent" -> {
                             val state = when (section) { "quick" -> picks; "trending" -> trending; "releases" -> releases
                                 "recommended" -> ContentState(items = mix); else -> ContentState(items = recent) }
@@ -119,6 +130,12 @@ fun DiscoveryScreen(vm: MusicViewModel, mood: String, onMood: (String) -> Unit, 
                             }
                         }
                     }
+                }
+            }
+            item(key = "discovery-tabs", contentType = "discovery-tabs") {
+                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    HomeHeading("Explore more", "New sounds, charts and conversations")
+                    HomeDiscoveryTabs(onSelect = vm::openHomeDestination)
                 }
             }
         }

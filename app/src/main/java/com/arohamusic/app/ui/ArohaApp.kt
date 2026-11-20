@@ -116,6 +116,13 @@ fun ArohaApp(vm: MusicViewModel) {
     }
     val library by vm.library.collectAsStateWithLifecycle()
     val current by vm.currentTrack.collectAsStateWithLifecycle()
+    val videoPlayerRequest by vm.videoPlayerRequest.collectAsStateWithLifecycle()
+    LaunchedEffect(current?.id, videoPlayerRequest) {
+        if (videoPlayerRequest != null && current?.id == videoPlayerRequest) {
+            playerExpansion.animateExpanded(true)
+            vm.consumeVideoPlayerRequest(videoPlayerRequest!!)
+        }
+    }
     val downloads by vm.downloads.collectAsStateWithLifecycle()
     val glimpseCollection by vm.glimpseCollection.collectAsStateWithLifecycle()
     val remoteCollection by vm.selectedCollection.collectAsStateWithLifecycle()

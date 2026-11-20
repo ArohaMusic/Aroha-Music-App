@@ -19,6 +19,10 @@ import com.arohamusic.app.domain.Track
 @UnstableApi
 @Composable
 fun NativeBrowseScreen(vm: MusicViewModel, page: BrowsePageState, onMore: (Track) -> Unit, onClose: () -> Unit) {
+    if (page.destination != null) {
+        androidx.compose.runtime.key(page.destination) { HomeDestinationScreen(vm, page, onMore, onClose) }
+        return
+    }
     val retry = vm::retryBrowse
     val artists = remember(page.songs.items, page.trending.items) {
         (page.songs.items + page.trending.items).flatMap { com.arohamusic.app.data.youtube.ArtistNames.fallback(it.artist) }
@@ -47,6 +51,11 @@ fun NativeBrowseScreen(vm: MusicViewModel, page: BrowsePageState, onMore: (Track
                 HomeHeading("Curated playlists", "Stay in the moment")
                 Spacer(Modifier.height(14.dp))
                 HomeCollectionShelf(page.playlists, vm::openCollection, retry)
+            }
+            item(key = "music-videos") {
+                HomeHeading("Music videos", "Watch this sound")
+                Spacer(Modifier.height(14.dp))
+                MusicVideoShelf(page.videos, retry, { vm.play(it, watchVideo = true) }, onMore)
             }
             item(key = "albums") {
                 HomeHeading("Recommended albums", "Explore the whole record")

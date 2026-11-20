@@ -4,6 +4,17 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class ArtistProfileParserTest {
+    @Test fun artistPageRetainsMusicVideosSeparatelyFromAudioSongs() {
+        fun item(id: String, type: String) = """{"musicTwoRowItemRenderer":{
+          "title":{"runs":[{"text":"Title $id"}]},"subtitle":{"runs":[{"text":"Singer"}]},
+          "navigationEndpoint":{"watchEndpoint":{"videoId":"$id","musicVideoType":"$type"}}
+        }}"""
+        val raw = """{"items":[${item("5NV6Rdv1a3I", "MUSIC_VIDEO_TYPE_OMV")},${item("abcdefghijk", "MUSIC_VIDEO_TYPE_ATV")}] }"""
+        val profile = ArtistProfileParser.musicHeader(raw, ArtistProfile("Singer"))
+        assertEquals(listOf("5NV6Rdv1a3I"), profile.musicVideos.map { it.id })
+        assertEquals(listOf("abcdefghijk"), profile.popularSongs.map { it.id })
+    }
+
     @Test fun musicHeaderUsesRealAudienceLabelsAndLargestHeroImage() {
         val raw = """{"header":{"musicImmersiveHeaderRenderer":{
           "title":{"runs":[{"text":"Artist"}]},

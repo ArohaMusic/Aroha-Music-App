@@ -9,6 +9,7 @@ data class ArtistProfile(
     val monthlyAudience: String? = null, val channelUrl: String = "", val verified: Boolean = false,
     val albums: List<BrowseCollection> = emptyList(), val popularSongs: List<Track> = emptyList(),
     val songsEndpoint: ArtistSongsEndpoint? = null,
+    val musicVideos: List<Track> = emptyList(),
 )
 
 /** Only use audience labels attached to an artist header, never song view counts. */
@@ -16,7 +17,8 @@ object ArtistProfileParser {
     fun musicHeader(raw: String, fallback: ArtistProfile): ArtistProfile {
         val catalog = MusicSearchParser.parse(raw)
         val enriched = fallback.copy(albums = MusicAlbumParser.parse(raw).map { if (it.artist.isBlank() || it.artist == "YouTube Music") it.copy(artist = fallback.name) else it }, popularSongs = catalog.tracks,
-            songsEndpoint = MusicArtistSongsParser.endpoint(raw) ?: fallback.songsEndpoint)
+            songsEndpoint = MusicArtistSongsParser.endpoint(raw) ?: fallback.songsEndpoint,
+            musicVideos = catalog.videos.ifEmpty { fallback.musicVideos })
         val root = JSONObject(raw)
         fun find(value: Any?, key: String): JSONObject? = when (value) {
             is JSONObject -> value.optJSONObject(key) ?: value.keys().asSequence().mapNotNull { find(value.opt(it), key) }.firstOrNull()

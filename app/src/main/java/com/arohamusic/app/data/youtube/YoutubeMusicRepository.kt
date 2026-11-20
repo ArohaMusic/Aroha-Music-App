@@ -148,6 +148,9 @@ class YoutubeMusicRepository(
     }.flowOn(ioDispatcher)
 
     private fun searchKind(kind: String) = kind
+    /** The filtered Music Videos extractor returns streams in tracks; Music JSON uses videos. */
+    suspend fun getMusicVideos(query: String, refresh: Boolean = false): List<Track> =
+        searchPage(query, "Videos", refresh = refresh).let { (it.videos + it.tracks).distinctBy { track -> track.id } }
     fun cachedSearchPage(query: String, kind: String): SearchPage? =
         searchMetadata.get("$countryCode|${query.trim().take(120).lowercase(Locale.ROOT)}" to searchKind(kind))
 
@@ -168,7 +171,7 @@ class YoutubeMusicRepository(
             engine.searchPage(trimmed, searchKind(kind), cursor).let { page -> page.copy(
                 tracks = page.tracks.distinctBy { it.id }, videos = page.videos.distinctBy { it.id }, artists = page.artists.distinctBy { it.channelUrl },
                 collections = page.collections.distinctBy { "${it.kind}:${it.id}" }) }.also { page ->
-                if (cursor == null && (page.tracks.isNotEmpty() || page.artists.isNotEmpty() || page.collections.isNotEmpty())) searchMetadata.put(key, page)
+                if (cursor == null && (page.tracks.isNotEmpty() || page.videos.isNotEmpty() || page.artists.isNotEmpty() || page.collections.isNotEmpty())) searchMetadata.put(key, page)
             }
         } }
     }

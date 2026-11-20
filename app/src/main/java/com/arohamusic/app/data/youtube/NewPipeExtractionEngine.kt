@@ -218,6 +218,7 @@ class NewPipeExtractionEngine(private val fastAudio: Boolean = true, sessionDire
         if (kind == "All") return@withProviderErrors MusicSearchParser.parse(musicRequest("search", org.json.JSONObject().put("query", query)))
         val filter = when (kind) {
             "Videos" -> YoutubeSearchQueryHandlerFactory.MUSIC_VIDEOS
+            "Podcasts" -> YoutubeSearchQueryHandlerFactory.PLAYLISTS
             "Artists" -> YoutubeSearchQueryHandlerFactory.MUSIC_ARTISTS
             "Albums" -> YoutubeSearchQueryHandlerFactory.MUSIC_ALBUMS
             "Playlists" -> YoutubeSearchQueryHandlerFactory.MUSIC_PLAYLISTS

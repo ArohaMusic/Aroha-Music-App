@@ -136,6 +136,11 @@ class MusicViewModel(private val app: ArohaApplication,
     val homeTrending = mutableHomeTrending.asStateFlow()
     private val mutableHomeNewReleases = MutableStateFlow(ContentState<Track>(loading = true))
     val homeNewReleases = mutableHomeNewReleases.asStateFlow()
+    private val mutableHomeVideos = MutableStateFlow(ContentState<Track>(loading = true))
+    val homeVideos = mutableHomeVideos.asStateFlow()
+    private val mutableVideoPlayerRequest = MutableStateFlow<String?>(null)
+    val videoPlayerRequest = mutableVideoPlayerRequest.asStateFlow()
+    fun consumeVideoPlayerRequest(id: String) { mutableVideoPlayerRequest.compareAndSet(id, null) }
     private val mutableHomeSongs = MutableStateFlow(ContentState<Track>(loading = true))
     val homeSongs = mutableHomeSongs.asStateFlow()
     private val mutableHomePlaylists = MutableStateFlow(ContentState<BrowseCollection>(loading = true))
@@ -188,8 +193,9 @@ class MusicViewModel(private val app: ArohaApplication,
         features.map { it.queue.tracks }.distinctUntilChanged(), dailyMix, searchResults,
         homeSongs.map { it.items }.distinctUntilChanged(), homeTrending.map { it.items }.distinctUntilChanged(),
         homeNewReleases.map { it.items }.distinctUntilChanged(),
-        browse.map { it?.let { page -> page.songs.items + page.trending.items + page.releases.items }.orEmpty() }.distinctUntilChanged(),
-        collectionSongs.map { it.items }.distinctUntilChanged(), artist.map { it?.songs?.items.orEmpty() }.distinctUntilChanged(),
+        homeVideos.map { it.items }.distinctUntilChanged(),
+        browse.map { it?.let { page -> page.songs.items + page.trending.items + page.releases.items + page.videos.items }.orEmpty() }.distinctUntilChanged(),
+        collectionSongs.map { it.items }.distinctUntilChanged(), artist.map { it?.let { page -> page.songs.items + page.videos.items }.orEmpty() }.distinctUntilChanged(),
     ) { sources ->
         val tracks = sources.asSequence().flatten().distinctBy { it.id }.toList()
         TrackCatalog(tracks, tracks.associateBy { it.id })
@@ -476,6 +482,7 @@ class MusicViewModel(private val app: ArohaApplication,
     fun play(track: Track, queue: List<Track> = listOf(track), startPosition: Long = 0, ordered: Boolean = false, recommendationChain: Boolean = true,
         collectionToken: String? = null, watchVideo: Boolean = false) {
         PlaybackTrace.mark(track.id, "ui_selection")
+        mutableVideoPlayerRequest.value = track.id.takeIf { watchVideo }
         app.cancelCollectionContinuation()
         searchGroupJobs.values.forEach { it.cancel() }
         // Persist every queue entry's metadata so changing the search results does not make
@@ -486,11 +493,11 @@ class MusicViewModel(private val app: ArohaApplication,
         pauseHomeLoading(freezeQuickPicks = true)
         browseJob?.cancel()
         mutableBrowse.update { it?.copy(songs = it.songs.copy(loading = false), trending = it.trending.copy(loading = false),
-            releases = it.releases.copy(loading = false), playlists = it.playlists.copy(loading = false), albums = it.albums.copy(loading = false)) }
+            releases = it.releases.copy(loading = false), playlists = it.playlists.copy(loading = false), albums = it.albums.copy(loading = false), videos = it.videos.copy(loading = false)) }
         mixJob?.cancel()
         artistJob?.cancel()
         artistSongsJob?.cancel()
-        mutableArtist.value = mutableArtist.value?.let { it.copy(profileLoading = false, songs = pausedArtistSection(it.songs), albums = pausedArtistSection(it.albums), related = pausedArtistSection(it.related)) }
+        mutableArtist.value = mutableArtist.value?.let { it.copy(profileLoading = false, songs = pausedArtistSection(it.songs), albums = pausedArtistSection(it.albums), related = pausedArtistSection(it.related), videos = pausedArtistSection(it.videos)) }
         searchJob?.cancel()
         searchKey = null
         mutableSearchLoading.value = false
@@ -706,7 +713,7 @@ class MusicViewModel(private val app: ArohaApplication,
         val previous = mutableBrowse.value?.takeIf { it.title == title }
         fun <T> starting(section: ContentState<T>?) = ContentState(section?.items.orEmpty(), loading = true)
         mutableBrowse.value = BrowsePageState(title, query, mood, starting(previous?.songs), starting(previous?.trending),
-            starting(previous?.releases), starting(previous?.playlists), starting(previous?.albums))
+            starting(previous?.releases), starting(previous?.playlists), starting(previous?.albums), videos = starting(previous?.videos))
         browseJob = viewModelScope.launch {
             if (refresh) youtube.clearMetadataCache()
             val place = homeRegion.value?.queryName.orEmpty()
@@ -715,6 +722,10 @@ class MusicViewModel(private val app: ArohaApplication,
                 youtube.searchTracks("$query $place").first().map { it.toLibraryTrack() }.musicPicks().tagged()
             }
             mutableBrowse.update { it?.copy(songs = songs) }
+            val videos = homeContent(previous?.videos ?: ContentState()) {
+                youtube.getMusicVideos("$query music videos $place", refresh).map { it.toLibraryTrack() }.take(20)
+            }
+            mutableBrowse.update { it?.copy(videos = videos) }
             val playlists = homeContent(previous?.playlists ?: ContentState()) {
                 youtube.searchCollections("$query playlists $place", CollectionKind.PLAYLIST).first().take(12)
             }
@@ -733,7 +744,48 @@ class MusicViewModel(private val app: ArohaApplication,
             mutableBrowse.update { it?.copy(releases = releases) }
         }
     }
-    fun retryBrowse() { browse.value?.let { openBrowse(it.title, it.query, it.mood, refresh = true) } }
+    fun openHomeDestination(destination: HomeDestination, refresh: Boolean = false) {
+        clearSearch(); closeArtist(); pauseHomeLoading(); browseJob?.cancel()
+        val previous = mutableBrowse.value?.takeIf { it.destination == destination }
+        fun <T> starting(state: ContentState<T>?) = ContentState(state?.items.orEmpty(), loading = true)
+        mutableBrowse.value = BrowsePageState(destination.label, "", false,
+            songs = if (destination == HomeDestination.RELEASES) starting(previous?.songs) else ContentState(),
+            trending = ContentState(), releases = ContentState(),
+            playlists = if (destination in setOf(HomeDestination.CHARTS, HomeDestination.PODCASTS)) starting(previous?.playlists) else ContentState(),
+            albums = if (destination == HomeDestination.RELEASES) starting(previous?.albums) else ContentState(),
+            videos = if (destination == HomeDestination.VIDEOS) starting(previous?.videos) else ContentState(), destination = destination)
+        browseJob = viewModelScope.launch {
+            val region = homeRegion.value ?: MusicRegion("US")
+            when (destination) {
+                HomeDestination.RELEASES -> {
+                    val songs = homeContent(previous?.songs ?: ContentState()) {
+                        youtube.searchTracks(homeQueries(region, "For you", LocalDate.now()).newReleases, refresh).first().map { it.toLibraryTrack() }.musicPicks()
+                    }
+                    mutableBrowse.update { it?.copy(songs = songs) }
+                    val albums = homeContent(previous?.albums ?: ContentState()) {
+                        youtube.searchCollections(regionalAlbumQuery(region), CollectionKind.ALBUM, refresh).first().take(20)
+                    }
+                    mutableBrowse.update { it?.copy(albums = albums) }
+                }
+                HomeDestination.CHARTS, HomeDestination.PODCASTS -> {
+                    val query = if (destination == HomeDestination.CHARTS) "top music charts ${region.queryName}" else "podcast shows ${region.queryName}"
+                    val playlists = homeContent(previous?.playlists ?: ContentState()) {
+                        if (destination == HomeDestination.PODCASTS) youtube.searchPage(query, "Podcasts", refresh = refresh).collections.take(20)
+                        else youtube.searchCollections(query, CollectionKind.PLAYLIST, refresh).first().take(20)
+                    }
+                    mutableBrowse.update { it?.copy(playlists = playlists) }
+                }
+                HomeDestination.VIDEOS -> {
+                    val videos = homeContent(previous?.videos ?: ContentState()) {
+                        youtube.getMusicVideos("${region.queryName} music videos", refresh).map { it.toLibraryTrack() }.take(20)
+                    }
+                    mutableBrowse.update { it?.copy(videos = videos) }
+                }
+            }
+        }
+    }
+    fun retryBrowse() { browse.value?.let { page -> page.destination?.let { openHomeDestination(it, refresh = true) }
+        ?: openBrowse(page.title, page.query, page.mood, refresh = true) } }
     fun closeBrowse() { browseJob?.cancel(); mutableBrowse.value = null }
 
     private fun <T> pausedArtistSection(state: ContentState<T>): ContentState<T> = state.copy(loading = false,
@@ -746,7 +798,7 @@ class MusicViewModel(private val app: ArohaApplication,
         artistSongsCursor = null; artistSongsProgress.reset()
         val identityBound = seed?.source == Source.YOUTUBE || !profile?.channelUrl.isNullOrBlank()
         val cachedProfile = profile ?: if (identityBound) null else youtube.cachedArtistProfile(name)
-        mutableArtist.value = ArtistPageState(name, identityBound = identityBound, imageUrl = cachedProfile?.imageUrl.orEmpty(), profile = cachedProfile, profileLoading = true, songs = ContentState(loading = true), albums = ContentState(loading = true), related = ContentState(loading = true))
+        mutableArtist.value = ArtistPageState(name, identityBound = identityBound, imageUrl = cachedProfile?.imageUrl.orEmpty(), profile = cachedProfile, profileLoading = true, songs = ContentState(loading = true), albums = ContentState(loading = true), related = ContentState(loading = true), videos = ContentState(loading = true))
         artistJob = viewModelScope.launch {
             try {
                 val portrait = cachedProfile ?: if (seed?.source == Source.YOUTUBE) youtube.getSongArtistProfile(seed.uri, name) else youtube.getArtistProfileByName(name)
@@ -762,6 +814,8 @@ class MusicViewModel(private val app: ArohaApplication,
             } catch (e: CancellationException) { throw e }
             catch (_: Exception) { mutableArtist.value = mutableArtist.value?.copy(profileLoading = false, profileError = "Artist details aren't available right now.") }
             val selectedProfile = mutableArtist.value?.profile
+            // Only videos returned by this canonical artist page belong on their shelf.
+            mutableArtist.update { it?.copy(videos = ContentState(selectedProfile?.musicVideos.orEmpty().map { video -> video.toLibraryTrack() })) }
             val popular = selectedProfile?.popularSongs.orEmpty().map { it.toLibraryTrack() }
             if (popular.isNotEmpty()) mutableArtist.update { it?.copy(songs = ContentState(popular, loading = true)) }
             val songs = content {
@@ -1046,7 +1100,7 @@ class MusicViewModel(private val app: ArohaApplication,
     fun playSearchVideo(track: Track) {
         if (searchLoading.value || searchVideos.value.none { it.id == track.id }) return
         rememberSearch()
-        play(track, recommendationChain = true)
+        play(track, recommendationChain = true, watchVideo = true)
     }
 
     fun playLibrarySearchResult(track: Track) {
@@ -1059,7 +1113,7 @@ class MusicViewModel(private val app: ArohaApplication,
         if (searchResults.value.none { it.id == track.id }) return
         rememberSearch()
         // Search selects the seed only; the service builds successors from each song.
-        play(track, listOf(track), ordered = true, recommendationChain = true)
+        play(track, listOf(track), ordered = true, recommendationChain = true, watchVideo = searchKind.value == "Videos")
     }
 
     fun saveListenerName(name: String) = editFeatures({
@@ -1105,6 +1159,7 @@ class MusicViewModel(private val app: ArohaApplication,
         mutableHomeRefreshing.value = false
         mutableHomeTrending.value = mutableHomeTrending.value.let { it.copy(loading = it.loading && it.items.isEmpty() && it.error == null) }
         mutableHomeNewReleases.value = mutableHomeNewReleases.value.let { it.copy(loading = it.loading && it.items.isEmpty() && it.error == null) }
+        mutableHomeVideos.value = mutableHomeVideos.value.let { it.copy(loading = it.loading && it.items.isEmpty() && it.error == null) }
         mutableHomeSongs.value = mutableHomeSongs.value.let { it.copy(loading = it.loading && it.items.isEmpty() && it.error == null) }
         mutableHomePlaylists.value = mutableHomePlaylists.value.let { it.copy(loading = it.loading && it.items.isEmpty() && it.error == null) }
         mutableHomeAlbums.value = mutableHomeAlbums.value.let { it.copy(loading = it.loading && it.items.isEmpty() && it.error == null) }
@@ -1149,6 +1204,7 @@ class MusicViewModel(private val app: ArohaApplication,
         fun <T> starting(state: ContentState<T>) = ContentState(if (changed) emptyList() else state.items, loading = true)
         mutableHomeTrending.value = starting(mutableHomeTrending.value)
         mutableHomeNewReleases.value = starting(mutableHomeNewReleases.value)
+        mutableHomeVideos.value = starting(mutableHomeVideos.value)
         mutableHomeSongs.value = starting(mutableHomeSongs.value)
         mutableHomePlaylists.value = starting(mutableHomePlaylists.value)
         mutableHomeAlbums.value = starting(mutableHomeAlbums.value)
@@ -1291,13 +1347,14 @@ class MusicViewModel(private val app: ArohaApplication,
                 mutableHomeSongs.value = mutableHomeSongs.value.copy(loading = false, error = message)
                 mutableHomePlaylists.value = mutableHomePlaylists.value.copy(loading = false, error = message)
                 mutableHomeAlbums.value = mutableHomeAlbums.value.copy(loading = false, error = message)
+                mutableHomeVideos.value = mutableHomeVideos.value.copy(loading = false, error = message)
             } finally { if (homeGeneration == generation) mutableHomeRefreshing.value = false }
         }
     }
 
     fun requestHomeSection(section: String) {
         val key = when (section) { "spotlight", "artists" -> "trending"; else -> section }
-        if (key !in setOf("trending", "releases", "playlists", "albums")) return
+        if (key !in setOf("trending", "releases", "playlists", "albums", "videos")) return
         requestedHomeSections.add(key)
         if (key in completedHomeSections) return
         if (homeJob?.isActive != true && homeShelfJob?.isActive != true) homeShelfJob = viewModelScope.launch { loadRequestedHomeSections() }
@@ -1313,12 +1370,14 @@ class MusicViewModel(private val app: ArohaApplication,
             when (key) {
                 "trending" -> mutableHomeTrending.update { it.copy(loading = true, error = null) }
                 "releases" -> mutableHomeNewReleases.update { it.copy(loading = true, error = null) }
+                "videos" -> mutableHomeVideos.update { it.copy(loading = true, error = null) }
                 "playlists" -> mutableHomePlaylists.update { it.copy(loading = true, error = null) }
                 "albums" -> mutableHomeAlbums.update { it.copy(loading = true, error = null) }
             }
             when (key) {
                 "trending" -> mutableHomeTrending.value = homeContent(mutableHomeTrending.value) { youtube.searchTracks(queries.trending, refreshHomeShelves).first().map { it.toLibraryTrack() }.musicPicks() }
                 "releases" -> mutableHomeNewReleases.value = homeContent(mutableHomeNewReleases.value) { youtube.searchTracks(queries.newReleases, refreshHomeShelves).first().map { it.toLibraryTrack() }.musicPicks() }
+                "videos" -> mutableHomeVideos.value = homeContent(mutableHomeVideos.value) { youtube.getMusicVideos("${region.queryName} ${homeMood.takeUnless { it.equals("For you", true) }.orEmpty()} music videos", refreshHomeShelves).map { it.toLibraryTrack() }.take(20) }
                 "playlists" -> mutableHomePlaylists.value = homeContent(mutableHomePlaylists.value) { youtube.searchCollections(queries.playlists, CollectionKind.PLAYLIST, refreshHomeShelves).first().take(12) }
                 "albums" -> mutableHomeAlbums.value = homeContent(mutableHomeAlbums.value) { youtube.searchCollections(regionalAlbumQuery(region), CollectionKind.ALBUM, refreshHomeShelves).first().take(12) }
             }
@@ -1461,4 +1520,5 @@ data class LyricsState(val trackId: String? = null, val loading: Boolean = false
 
 data class ArtistPageState(val name: String, val imageUrl: String = "",
     val profile: com.arohamusic.app.data.youtube.ArtistProfile? = null, val profileLoading: Boolean = false, val profileError: String? = null, val songs: ContentState<Track> = ContentState(), val albums: ContentState<BrowseCollection> = ContentState(), val related: ContentState<String> = ContentState(), val identityBound: Boolean = false,
-    val hasMoreSongs: Boolean = false, val loadingMoreSongs: Boolean = false, val songPageError: String? = null)
+    val hasMoreSongs: Boolean = false, val loadingMoreSongs: Boolean = false, val songPageError: String? = null,
+    val videos: ContentState<Track> = ContentState())
