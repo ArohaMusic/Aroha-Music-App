@@ -6,8 +6,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material.icons.outlined.*
@@ -23,7 +21,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
 import com.arohamusic.app.domain.*
 import java.time.LocalDateTime
-import kotlinx.coroutines.launch
 
 internal val homeSectionNames = mapOf("quick" to "Quick picks", "moods" to "Music for your moment",
     "recent" to "Recently played", "recommended" to "Recommended", "trending" to "Trending", "releases" to "New releases",
@@ -155,7 +152,6 @@ private fun AddHomeMoodDialog(vm: MusicViewModel, onDismiss: () -> Unit) {
 private fun QuickPickShelf(songs: List<Track>, activeId: String?, onPlay: (Track) -> Unit, onMore: (Track) -> Unit, onPlayAll: () -> Unit) {
     val pages = remember(songs) { songs.take(20).chunked(4) }
     val shelf = rememberLazyListState()
-    val scope = rememberCoroutineScope()
     LaunchedEffect(pages.size) { if (pages.isNotEmpty() && shelf.firstVisibleItemIndex > pages.lastIndex) shelf.scrollToItem(pages.lastIndex) }
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Row(Modifier.fillMaxWidth().padding(start = 22.dp, end = 14.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -163,14 +159,6 @@ private fun QuickPickShelf(songs: List<Track>, activeId: String?, onPlay: (Track
             MotionOutlinedButton(onClick = onPlayAll, shape = CircleShape, contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
                 border = BorderStroke(1.dp, Muted.copy(alpha = .3f)), colors = ButtonDefaults.outlinedButtonColors(contentColor = ContentColor)) {
                 Text("Play all", style = ArohaType.Control)
-            }
-            MotionOutlinedIconButton(onClick = { scope.launch { shelf.animateScrollToItem((shelf.firstVisibleItemIndex - 1).coerceAtLeast(0)) } },
-                enabled = shelf.canScrollBackward, modifier = Modifier.padding(start = 6.dp).size(40.dp)) {
-                MusicIcon(Icons.AutoMirrored.Rounded.ArrowBack, "Previous quick picks page", modifier = Modifier.size(20.dp))
-            }
-            MotionOutlinedIconButton(onClick = { scope.launch { shelf.animateScrollToItem((shelf.firstVisibleItemIndex + 1).coerceAtMost(pages.lastIndex)) } },
-                enabled = shelf.canScrollForward, modifier = Modifier.padding(start = 6.dp).size(40.dp)) {
-                MusicIcon(Icons.AutoMirrored.Rounded.ArrowForward, "Next quick picks page", modifier = Modifier.size(20.dp))
             }
         }
         BoxWithConstraints(Modifier.fillMaxWidth()) {
