@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Replace the player's multicolour blurred background with one restrained artwork tone, with a short colour dissolve on entry and song changes; respect reduced motion and retain the last tone while artwork loads.
 - Unify typography around the bundled Plus Jakarta Sans family and a shared scale for headings, song titles, artist metadata, buttons, menus and Settings.
 - Improve small-text readability, soften heavy headings, match plain and synced lyric fonts, and adapt player and spotlight layouts to Android font scaling.
 - Redesign song and Glimpses action menus with a fixed song header, quick actions, grouped controls and clearer quality selection.

@@ -24,13 +24,18 @@ private val atmosphereCache = object : LinkedHashMap<String, ImageBitmap>(12, .7
     override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, ImageBitmap>?) = size > 12
 }
 
-/** Actual artwork, softly defocused and dimmed. No generated colors or colored gradients. */
+/** A single artwork tone keeps the player clear, without enlarged blur patches or moving blobs. */
 @Composable
-internal fun AmbientPlayerBackdrop(artwork: String, modifier: Modifier = Modifier, dark: Boolean = true,
-    dimAmount: Float? = null, animate: Boolean = true, saturation: Float = 1f) {
+internal fun AmbientPlayerBackdrop(artwork: String, modifier: Modifier = Modifier, dark: Boolean = true) {
+    Box(modifier.dynamicPlayerBackground(artwork, dark))
+}
+
+/** A very faint artwork halo is used only behind browsing pages. */
+@Composable
+private fun BrowsingArtworkAtmosphere(artwork: String, modifier: Modifier, dark: Boolean,
+    dimAmount: Float, saturation: Float) {
     val context = LocalContext.current
     val profile = motionProfile()
-    val drift = animate && profile.expressive && LocalAppearance.current.effects
     val image by produceState(atmosphereCache[artwork], artwork) {
         atmosphereCache[artwork]?.let { value = it; return@produceState }
         if (artwork.isBlank()) { value = null; return@produceState }
@@ -45,21 +50,13 @@ internal fun AmbientPlayerBackdrop(artwork: String, modifier: Modifier = Modifie
         } catch (cancelled: CancellationException) { throw cancelled }
         catch (_: Exception) { value = null }
     }
-    val phase = if (drift) rememberInfiniteTransition(label = "Artwork drift").animateFloat(
-        0f, (kotlin.math.PI * 2).toFloat(), infiniteRepeatable(tween(24_000, easing = LinearEasing)), label = "Drift phase") else null
     val filter = remember(saturation) { ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(saturation) }) }
     Box(modifier.clipToBounds().background(if (dark) Color(0xFF101014) else Ink)) {
         Crossfade(image, Modifier.matchParentSize(), animationSpec = tween(profile.duration(900)), label = "Artwork atmosphere") { texture ->
             if (texture != null) Image(texture, contentDescription = null, contentScale = ContentScale.Crop,
-                filterQuality = FilterQuality.Medium, colorFilter = filter, modifier = Modifier.fillMaxSize().graphicsLayer {
-                    val angle = phase?.value ?: 0f
-                    scaleX = 1.18f + (if (drift) .035f else 0f) * kotlin.math.sin(angle)
-                    scaleY = scaleX
-                    translationX = if (drift) size.width * .025f * kotlin.math.sin(angle) else 0f
-                    translationY = if (drift) size.height * .025f * kotlin.math.cos(angle) else 0f
-                })
+                filterQuality = FilterQuality.Medium, colorFilter = filter, modifier = Modifier.fillMaxSize())
         }
-        Box(Modifier.matchParentSize().background((if (dark) Color.Black else Color.White).copy(alpha = dimAmount ?: if (dark) .54f else .96f)))
+        Box(Modifier.matchParentSize().background((if (dark) Color.Black else Color.White).copy(alpha = dimAmount)))
     }
 }
 
@@ -71,8 +68,8 @@ internal fun SongPageBackdrop(modifier: Modifier = Modifier, artwork: String = L
     val ink = Ink
     BoxWithConstraints(modifier.background(ink)) {
         if (appearance.effects && appearance.mode != com.arohamusic.app.domain.ThemeMode.AMOLED && artwork.isNotBlank()) {
-            AmbientPlayerBackdrop(artwork, Modifier.fillMaxWidth().height(maxHeight * .65f), dark = dark,
-                dimAmount = if (dark) .88f else .94f, animate = false, saturation = .28f)
+            BrowsingArtworkAtmosphere(artwork, Modifier.fillMaxWidth().height(maxHeight * .65f), dark = dark,
+                dimAmount = if (dark) .88f else .94f, saturation = .28f)
             // A quiet artwork halo at the top fades into a solid reading surface. Controls
             // keep the theme's opaque colours rather than inheriting the cover's contrast.
             Box(Modifier.matchParentSize().background(Brush.verticalGradient(

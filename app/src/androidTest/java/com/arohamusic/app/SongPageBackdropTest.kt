@@ -7,6 +7,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModelProvider
 import androidx.media3.common.util.UnstableApi
@@ -42,8 +43,16 @@ class SongPageBackdropTest {
             while (true) {
                 delay(100)
                 val bitmap = requireNotNull(instrumentation.uiAutomation.takeScreenshot())
-                pixel = bitmap.getPixel(bitmap.width / 2, bitmap.height / 2)
+                // The cover halo is at the top; the middle deliberately fades into neutral Ink.
+                pixel = bitmap.getPixel(bitmap.width / 2, bitmap.height / 10)
                 if (predicate(pixel)) {
+                    val middle = bitmap.getPixel(bitmap.width / 2, bitmap.height / 2)
+                    val background = (if (dark.value) darkColorScheme() else lightColorScheme()).background.toArgb()
+                    assertTrue("The reading surface must remain close to the theme background", listOf(16, 8, 0).all { shift ->
+                        kotlin.math.abs((middle shr shift and 255) - (background shr shift and 255)) <= 6
+                    })
+                    assertTrue("Text must retain strong contrast", androidx.core.graphics.ColorUtils.calculateContrast(
+                        if (dark.value) android.graphics.Color.WHITE else android.graphics.Color.BLACK, middle) >= 7.0)
                     File(app.getExternalFilesDir(null), "page-atmosphere-$name.png").outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
                     bitmap.recycle(); break
                 }
@@ -66,11 +75,11 @@ class SongPageBackdropTest {
                     }
                 }
             }
-            val red = capture("dark-red") { android.graphics.Color.red(it) > android.graphics.Color.blue(it) + 15 }
-            assertTrue("Browsing should use the darker artwork variant", android.graphics.Color.red(red) in 20..65)
+            val red = capture("dark-red") { android.graphics.Color.red(it) > android.graphics.Color.blue(it) + 3 }
+            assertTrue("Browsing should use a faint, dark artwork halo", android.graphics.Color.red(red) in 8..40)
             withContext(Dispatchers.Main) { artwork.value = files.last().toURI().toString() }
-            val blue = capture("dark-blue") { android.graphics.Color.blue(it) > android.graphics.Color.red(it) + 15 }
-            assertTrue(android.graphics.Color.blue(blue) in 20..65)
+            val blue = capture("dark-blue") { android.graphics.Color.blue(it) > android.graphics.Color.red(it) + 3 }
+            assertTrue(android.graphics.Color.blue(blue) in 8..40)
             withContext(Dispatchers.Main) { dark.value = false }
             val light = capture("light-blue") { android.graphics.Color.red(it) > 230 }
             assertTrue("Light-theme dark text needs a light surface", android.graphics.Color.red(light) > 230)

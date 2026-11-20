@@ -1,5 +1,11 @@
 package com.arohamusic.app.domain
 
+/** One restrained hue, with enough contrast for player controls throughout colour transitions. */
+fun playerBackdropTone(seed: Long, dark: Boolean): Long = AccentPalette.tone(
+    AccentPalette.hue(seed), AccentPalette.saturation(seed).coerceAtMost(.42),
+    if (dark) .20 else .96,
+)
+
 /** Ignore white/black borders and choose a common colorful tone from a tiny artwork decode. */
 fun artworkColorSeed(pixels: IntArray, fallback: Long): Long {
     val colors = mutableMapOf<Int, Int>()
