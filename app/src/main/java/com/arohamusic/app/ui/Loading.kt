@@ -37,7 +37,6 @@ private fun QuickPickSkeletons() = SkeletonGroup {
             horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
             Text("Quick picks", Modifier.weight(1f), color = ContentColor, style = ArohaType.SectionTitle)
             SkeletonBox(Modifier.size(78.dp, 40.dp), 50)
-            repeat(2) { SkeletonBox(Modifier.size(40.dp), 50) }
         }
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             val pageWidth = (maxWidth - 62.dp).coerceIn(240.dp, 390.dp)
@@ -115,7 +114,6 @@ fun ShelfSkeletons() = SkeletonGroup {
             Column(Modifier.width(160.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 SkeletonBox(Modifier.size(160.dp), 12)
                 SkeletonBox(Modifier.width(132.dp).height(13.dp), 5)
-                SkeletonBox(Modifier.width(108.dp).height(13.dp), 5)
                 SkeletonBox(Modifier.width(75.dp).height(10.dp), 5)
             }
         }

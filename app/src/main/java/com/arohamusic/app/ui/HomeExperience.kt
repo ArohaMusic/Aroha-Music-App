@@ -112,7 +112,9 @@ fun DiscoveryScreen(vm: MusicViewModel, mood: String, onMood: (String) -> Unit, 
                             HomeHeading("Artists", "Follow the voices you love")
                             LazyRow(contentPadding = PaddingValues(horizontal = 22.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                                 items(artists, key = { it }) { name -> Column(Modifier.width(100.dp).motionClickable { vm.openArtist(name) }, horizontalAlignment = Alignment.CenterHorizontally) {
-                                    ArtistPortrait(vm, name, Modifier.size(96.dp).clip(CircleShape)); Text(name, style = ArohaType.Caption, modifier = Modifier.padding(top = 8.dp))
+                                    ArtistPortrait(vm, name, Modifier.size(96.dp).clip(CircleShape))
+                                    Text(name, style = ArohaType.Caption, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.padding(top = 8.dp))
                                 } }
                             }
                         }

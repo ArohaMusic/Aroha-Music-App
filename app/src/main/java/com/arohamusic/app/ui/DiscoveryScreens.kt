@@ -66,7 +66,7 @@ fun CollectionCard(collection: BrowseCollection, modifier: Modifier = Modifier, 
         Box(Modifier.size(160.dp).clip(androidx.compose.foundation.shape.RoundedCornerShape(12.dp)).background(Glass)) {
             CoverImage(collection.thumbnailUrl, collection.title, Modifier.matchParentSize().browseArtwork("collection-${collection.id}"), rounded = false)
         }
-        Text(collection.title, style = ArohaType.CardTitle, minLines = 2, maxLines = 2, overflow = TextOverflow.Ellipsis,
+        Text(collection.title, style = ArohaType.CardTitle, maxLines = 1, overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(top = 8.dp))
         Text(listOf(if (collection.kind == CollectionKind.ALBUM) "Album" else "Playlist", collection.artist)
             .filter { it.isNotBlank() }.joinToString(" • "), color = Muted, style = ArohaType.Caption, maxLines = 1, overflow = TextOverflow.Ellipsis,
@@ -82,7 +82,7 @@ fun SongShelf(tracks: List<Track>, onPlay: (Track) -> Unit) {
             Column(Modifier.width(150.dp).then(motionItem()).motionReveal("shelf-${track.id}")
                 .shelfMotion(shelf, track.id).motionClickable { onPlay(track) }) {
                 Artwork(track, Modifier.size(150.dp))
-                Text(track.title, style = ArohaType.CardTitle, maxLines = 2, overflow = TextOverflow.Ellipsis,
+                Text(track.title, style = ArohaType.CardTitle, maxLines = 1, overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(top = 8.dp))
                 Text(track.artist, style = ArohaType.Caption, color = Muted, maxLines = 1, overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(top = 3.dp))

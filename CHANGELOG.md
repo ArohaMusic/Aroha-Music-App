@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Keep song, album and playlist card labels to one title line and one subtitle line with ellipses, and match their loading placeholders.
 - Replace the player's multicolour blurred background with one restrained artwork tone, with a short colour dissolve on entry and song changes; respect reduced motion and retain the last tone while artwork loads.
 - Unify typography around the bundled Plus Jakarta Sans family and a shared scale for headings, song titles, artist metadata, buttons, menus and Settings.
 - Improve small-text readability, soften heavy headings, match plain and synced lyric fonts, and adapt player and spotlight layouts to Android font scaling.

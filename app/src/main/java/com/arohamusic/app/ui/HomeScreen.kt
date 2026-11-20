@@ -66,7 +66,7 @@ internal fun HomeSpotlight(track: Track, country: String, onPlay: () -> Unit) {
             }
             Column(Modifier.fillMaxWidth(0.82f)) {
                 Text(track.homeTitle(), color = Color.White, style = MaterialTheme.typography.headlineSmall,
-                    maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(track.artist, color = Color.White.copy(alpha = 0.78f), style = ArohaType.Metadata,
                     maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 6.dp))
             }
@@ -143,7 +143,7 @@ internal fun HomeSongShelf(tracks: List<Track>, ranked: Boolean = false, onPlay:
                     if (ranked) Text((index + 1).toString().padStart(2, '0'), style = ArohaType.Timestamp, color = Color.White,
                         modifier = Modifier.padding(10.dp).background(Color.Black.copy(alpha = 0.65f), RoundedCornerShape(8.dp)).padding(horizontal = 8.dp, vertical = 5.dp))
                 }
-                Text(track.homeTitle(), style = ArohaType.CardTitle, minLines = 2, maxLines = 2, overflow = TextOverflow.Ellipsis,
+                Text(track.homeTitle(), style = ArohaType.CardTitle, maxLines = 1, overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(top = 8.dp))
                 Text(listOf("Song", track.artist).filter { it.isNotBlank() }.joinToString(" • "), color = Muted, style = ArohaType.Metadata,
                     lineHeight = 17.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 3.dp))
@@ -233,8 +233,8 @@ internal fun CategoryShelf(categories: List<HomeCategory>, onSelect: (HomeCatego
                 .motionClickable { onSelect(category) }.padding(16.dp)) {
                 MusicIcon(category.icon, null, tint = Color.White.copy(alpha = 0.18f), modifier = Modifier.align(Alignment.TopEnd).size(43.dp))
                 Column(Modifier.align(Alignment.BottomStart), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                    Text(category.title, color = Color.White, style = ArohaType.ActionTitle)
-                    Text(category.detail, color = Color.White, style = ArohaType.Caption)
+                    Text(category.title, color = Color.White, style = ArohaType.ActionTitle, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(category.detail, color = Color.White, style = ArohaType.Caption, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
         }
