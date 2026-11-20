@@ -1,0 +1,47 @@
+# Lyrics rendering
+
+The revised 1.24.13 renderer follows a review of these source snapshots:
+
+- [Metrolist bb4e1a6](https://github.com/metrolistgroup/metrolist/tree/bb4e1a64acbf25d7da7a052e3ca8269b63df6fb8/shared/src/commonMain/kotlin/com/metrolist/shared/ui/components/lyrics): complete-paragraph measurement, continuous word masks, a playback-aware visual clock, fixed reading anchors and spring/stagger transitions.
+- [Echo Music 64e7210](https://github.com/EchoMusicApp/Echo-Music/tree/64e721015dd906e26785db773e02ad4cf6029090/app/src/main/kotlin/com/music/echo/ui/component): larger lyric typography, distance-based emphasis and word sweeps, including complex-script rendering in MetroLyrics.
+
+Both projects are GPL-3.0. They are design and implementation references; Aroha's smaller renderer is implemented locally without importing their renderer, assets, lyrics content or dependencies.
+
+## Rendering choices
+
+- Shape and wrap the entire line with Compose text layout. Overlay highlights against cached paragraph ranges, keeping Indic/Arabic shaping and the original whitespace intact.
+- Split the highlight mask at visual line and bidirectional-run boundaries. Sweep right-to-left runs in the correct direction and continue a wrapped segment across its visual lines.
+- Read the display position in the drawing phase. Interpolate between player samples only while playing, stop on pause/buffering/lifecycle stop, and cap interpolation if samples stall. Smooth small late forward polls over 320 ms so the highlight does not jump backwards; actual backwards/large seeks immediately replace the anchor.
+- Derive active-line changes from the visual clock. Keep the focused verse at a consistent reading anchor, move the anchor upward for long wrapped verses, and keep edge fades outside the current verse. Carry scroll velocity between interrupted spring animations for fast lyrics; record each observed verse before suspending animation so cancelled scrolls cannot turn later transitions into abrupt seeks. Snap across large seeks and backwards verse changes, and let manual scrolling suspend following.
+- Use the cinematic direction selected by the user: semi-bold white type, 1.23 line height, slightly tightened tracking, and 36–40dp between verse text blocks. Default sizes are Apple Music/Cascade 30sp and Luminous/Karaoke 29sp, with the existing user size control. There are no coloured outlines, rainbow gradients or sparkles. The removed `YOUTUBE`/`DEFAULT` lyric identifiers still decode to Apple Music; player styles and lyric providers remain separate.
+- Give the actual singing word white focus light: the base eases from 38% to 92% white over at most 80ms, and the timestamp sweep reaches full white. Completed words use 64%, unsung words 38%, and the current verse before its first word uses 80%. Completed, unsung and live masks are disjoint so brightness does not accumulate accidentally.
+- Keep text solid and explicitly reset fill/shadow for each paragraph pass. Apple Music lifts eligible whole Latin/Cyrillic/Greek words by at most 1.2dp, Luminous 0.6dp, and Cascade 2.2dp. A squared-sine envelope returns at zero velocity; short words receive less movement. Expansion stays below 4dp. Connected scripts, wrapped words and syllables retain their paragraph geometry. Karaoke keeps lettering still and adds a thin white timestamp underline.
+- Create depth through context: nearest previous/upcoming verses use 14%/31% white, then 9% for older verses and 23%/16% for further upcoming verses. Apple/Cascade use 88% previous and 94% upcoming visual width; Luminous/Karaoke use 90%/95%. Optional depth blur reaches at most 1.2dp. Manual reading raises context brightness and removes depth. Accessible descriptions identify each verse role.
+- Let the shared following scroll carry the verse. Remove individual-row vertical bounces that fought with that motion; retain smooth scale and focus transitions without changing paragraph wrapping. Line-only lyrics receive steady white focus light, with a quiet 8-second breathing light in Luminous. Never invent word timing or repeat decorative karaoke sweeps over line-only lyrics.
+- Derive all text effects from playback timestamps, keeping paused text stable. Reduce motion disables lift, scale transitions, depth and breathing while retaining real timing cues. Reuse moving/completed paths and rebuild completion masks only when a word changes completion state, including backwards seeks.
+- Plain text uses the same semi-bold type with 1.45 line height for uninterrupted reading.
+- Use the same bounded scrolling viewport and verse renderer in Settings' playing preview, with a self-contained sample clock and tap-to-seek verses. Reduce motion disables interpolation, blur and line movement; timestamp highlighting remains available.
+
+Word start/end timestamps come from the provider. Missing word ends may use the next supplied word/line timestamp for display. Ordinary line-synced or plain lyrics never acquire invented word starts.
+
+## Provider policy
+
+The app offers six sources: LRCLIB, Better Lyrics, AMLL, KuGou, YouTube Music and lyrics.ovh. Automatic mode is the default, with Word by word enabled. Remember the successful word source per recording for seven days and rank bounded word successes locally. A remembered recording takes priority over global source ranking. Manual source selection always gets the first attempt; fallback off restricts lookup to the selected source (or the remembered/ranked single source in Automatic).
+
+Automatic word lookup runs at most two sources concurrently, including a fast readable LRCLIB result in the first pair where applicable. Keep timed line results visible while searching for words. Hold provisional plain-only results behind the verse-shaped loading placeholder; show plain text as a final fallback only after timed lookup finishes. Explicit Plain text mode still returns the first readable result. Line by line continues past plain-only sources, and all three behaviour modes have separate result caches. Cancel outstanding work when word timing is found. Lookup has a 25-second total budget, eight-second per-source deadlines and six-second HTTP deadlines. Matching requests share a lock; different recordings can proceed independently. Successful source responses are reused for 15 minutes, definitive source misses for 90 seconds, and network failures receive a short exponential cooldown instead of becoming cached lyric misses. Honor server Retry-After, including date-form headers. Primary result caches keep provider/fallback/timing choices separate; wordless fallback expires after 15 minutes, while stale readable lyrics remain usable offline.
+
+Better Lyrics supplies TTML through its [public cached API](https://docs.betterlyrics.org/docs/authentication); uncached requests requiring authentication are treated as misses. No API key is embedded. Parse only body lyrics, skip translation/background roles, reject external entities, and bound document/line sizes. KuGou first matches recording title, artist and duration, then fetches compressed KRC with relative word starts and durations. Neither adapter invents word timestamps. No upstream provider implementation or lyric content is bundled.
+
+AMLL searches `api.amll.dev/v1/lyrics/search?q=...`, checks exact normalized title/artist identity, and retrieves a matched lyric ID through `/v1/lyrics/get`. Its TTML goes through the same bounded parser; records running beyond the recording's known duration tolerance are rejected. The catalogue and format are described by the [AMLL project](https://github.com/amll-dev/amll-ttml-db).
+
+## Defaults and browsing backgrounds
+
+Versioned preference markers apply the requested Apple Music player/lyrics profile, Word by word/Automatic fallback and five-second crossfade on upgrade. Style marker version 2 corrects the earlier YouTube Music default independently of playback/provider settings. Encoding stores the migration markers so later user choices, including the YouTube Music player, gapless playback and other lyric modes, persist normally.
+
+Home, Search, Library, Offline and full-screen Settings/privacy/legal pages use a static blurred current-artwork texture with an 82% black overlay in dark themes. Light themes use a 95% white overlay for readable dark text. The shared tiny-texture cache avoids repeated blur work. Player and artist backdrops retain their original parameters, and pages with existing artwork backdrops are excluded from the new root backdrop.
+
+## Loading and manual timing
+
+The loading placeholder uses white verse-shaped bars at the reading anchor with one shared shimmer phase, instead of song artwork rows or an unsynced document. It follows lyric size/embedded geometry, remains visible on the dark player in every app theme, and stops animating with Reduce motion. A loading state from another track cannot expose stale content. A plain-only final fallback is labelled “Timing unavailable”.
+
+A nonzero manual offset is shown directly above the lyrics as earlier/later, with Reset timing beside it. The settings explain that it applies to every song and label zero as Original timing. Reset changes only the offset; provider lookup is keyed by the full lyric behaviour, provider and fallback choice, so offset resets do not fetch lyrics again. The original playback clock and provider timestamps are unchanged by this loading follow-up.

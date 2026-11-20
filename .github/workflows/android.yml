@@ -1,0 +1,67 @@
+name: Android checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: android-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: gradle/actions/wrapper-validation@8da46b539cd8fe6ab27ca75128919a18d757604c # v6
+      - name: Audit public source and exporter boundaries
+        run: |
+          python3 scripts/public_source.py
+          python3 scripts/audit_publication.py
+          python3 scripts/security_audit.py --actions-only
+          python3 -m unittest discover -s scripts -p 'test_*.py'
+          python3 scripts/export_source.py
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4
+        with:
+          # Override v3's default "tools platform-tools": "tools" is obsolete.
+          packages: 'platform-tools platforms;android-35 build-tools;36.0.0'
+          log-accepted-android-sdk-licenses: false
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6
+      - name: Build, test and lint
+        run: ./gradlew :app:assembleDebug :app:testDebugUnitTest :app:lintDebug :app:assembleRelease :app:assembleDebugAndroidTest
+      - name: Check dependency inventory
+        id: inventory
+        run: |
+          ./gradlew -I scripts/runtime_inventory.init.gradle :app:writeRuntimeInventory
+          if ! git diff --exit-code -- LICENSES/runtime-dependencies.json; then
+            echo '::error file=LICENSES/runtime-dependencies.json::Dependency inventory changed. Regenerate it on this PR branch, review third-party notices, and commit the reviewed files. See CONTRIBUTING.md.'
+            exit 1
+          fi
+      - name: Upload dependency inventory for review
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        if: failure() && steps.inventory.outcome == 'failure'
+        with:
+          name: dependency-inventory-review
+          path: LICENSES/runtime-dependencies.json
+          retention-days: 7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: aroha-music-debug
+          path: app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        if: failure()
+        with:
+          name: verification-reports
+          path: |
+            app/build/reports/tests/
+            app/build/reports/lint-results-debug.*
+          retention-days: 7

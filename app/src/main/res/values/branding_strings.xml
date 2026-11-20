@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">Aroha Music</string>
+    <string name="widget_name">Aroha Music player</string>
+    <string name="widget_shortcut_title">Aroha Music playlist shortcut</string>
+    <string name="widget_create_playlist">Create a playlist in Aroha Music to add a shortcut.</string>
+    <string name="share_card_label">Aroha Music card</string>
+    <string name="share_card_chooser">Share Aroha Music card</string>
+    <string name="recap_title">My Aroha Music recap</string>
+</resources>

@@ -1,0 +1,44 @@
+{
+  "binary_assets": [
+    {
+      "path": "app/src/main/res/font/jakarta_bold.ttf",
+      "sha256": "5f5342ef76862b5b5365d1dff1a667629dfa484e388dd602552f647219c3870f",
+      "purpose": "Bundled Plus Jakarta Sans font weight; licensed in LICENSES/ and app font assets."
+    },
+    {
+      "path": "app/src/main/res/font/jakarta_extrabold.ttf",
+      "sha256": "7d60d21b5dec501c77437e80aabd539f1d7a7b0ac7d4ada361d4d42abc7c55ea",
+      "purpose": "Bundled Plus Jakarta Sans font weight; licensed in LICENSES/ and app font assets."
+    },
+    {
+      "path": "app/src/main/res/font/jakarta_medium.ttf",
+      "sha256": "c77bab757d7402ec6d9341d5f7ddaafb2474e17026792697ba4624c7dc89caf7",
+      "purpose": "Bundled Plus Jakarta Sans font weight; licensed in LICENSES/ and app font assets."
+    },
+    {
+      "path": "app/src/main/res/font/jakarta_regular.ttf",
+      "sha256": "bd6276d4060e3b1ebc45047469e0bb86b08f301ba681cdf1ceb6245ea10478d2",
+      "purpose": "Bundled Plus Jakarta Sans font weight; licensed in LICENSES/ and app font assets."
+    },
+    {
+      "path": "app/src/main/res/font/jakarta_semibold.ttf",
+      "sha256": "65dbcedb6596a41c30869729eb31cb57d1f5edfe365684314bba8a1994eaa4cb",
+      "purpose": "Bundled Plus Jakarta Sans font weight; licensed in LICENSES/ and app font assets."
+    },
+    {
+      "path": "assets/branding/aroha-music-icon.png",
+      "sha256": "164d031ce2fd3b20a25672c53342c9913ebd61c6e4cb9dab36aeccbb38e78cf8",
+      "purpose": "Final Vinyl Headset branding export; editable SVG source is in the same directory."
+    },
+    {
+      "path": "assets/branding/aroha-music-logo.png",
+      "sha256": "4509bc1ac20aa5ffd92f3d84ed8bc739f32ef2cad944f75bac8434a465f3ec66",
+      "purpose": "Final Vinyl Headset branding export; editable SVG source is in the same directory."
+    },
+    {
+      "path": "gradle/wrapper/gradle-wrapper.jar",
+      "sha256": "3b8a25775a69158b5ad2b1d17a80a88dc7b40a352a73eb27d06c612a7ce68e98",
+      "purpose": "Gradle wrapper required to build the application; verified separately by the wrapper-validation workflow."
+    }
+  ]
+}

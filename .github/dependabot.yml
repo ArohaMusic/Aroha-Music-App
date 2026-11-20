@@ -1,0 +1,23 @@
+version: 2
+updates:
+  - package-ecosystem: gradle
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    # Defer the entire OkHttp 5 migration: 5.4 needs API 36, 5.5 needs API 37.
+    # Keep receiving compatible 4.x updates until SDK/playback migration is tested.
+    ignore:
+      - dependency-name: com.squareup.okhttp3:okhttp
+        versions: [">=5.0.0"]
+      # Kotlin 2.4 metadata is unsupported by this project's bundled D8/R8.
+      - dependency-name: org.jetbrains.kotlin.plugin.compose
+        versions: [">=2.4.0"]
+      # Upgrade the Compose BOM manually with its SDK/AGP requirements.
+      # The proposed 2026.09.00 BOM needs API 37 and AGP 9.1+.
+      - dependency-name: androidx.compose:compose-bom
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5

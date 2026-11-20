@@ -1,0 +1,55 @@
+# Architecture
+
+## Modules and compatibility
+
+`app` is the native Android application, with application ID and namespace `com.arohamusic.app`. `benchmarks` provides optional Macrobenchmark/profile-generation tooling, included only with `-PperformanceTools=true`, under `com.arohamusic.app.benchmarks`.
+
+## Data and providers
+
+`LibraryStore` and `FeatureStore` use atomic DataStore updates for the library, preferences, queue, feedback and local listening aggregates. `LibraryBackup` validates portable JSON before merging; document grants are excluded. `LocalAudioImporter` uses Android's Storage Access Framework.
+
+`YoutubeMusicRepository` coordinates search, artists, collections, discovery, recommendations and extraction. NewPipeExtractor provides native extraction. Parsers retain stable provider IDs and credits. Metadata caches and snapshots bound retained data. Personalization comes from local listening/likes and available provider radios, not an authenticated account feed.
+
+`LyricsRepository` coordinates six sources: LRCLIB, Better Lyrics, AMLL, KuGou, YouTube Music and lyrics.ovh. Automatic mode remembers successful word-timed sources per recording on device and ranks word successes; a manual selection always gets the first attempt. Lookup uses at most two workers, a 25-second overall budget, per-source deadlines, shared requests, expiring result/miss caches, outage cooldowns and Retry-After handling. Word mode displays readable partial results while searching for actual word timestamps; line/plain modes use the first available result. Bounded Lyricsfile, enhanced LRC, TTML and KRC parsers preserve supplied timing without inventing word starts. Provider/timing preferences have separate offline caches. See [lyrics rendering and provider policy](LYRICS_DESIGN.md). Persisted playback references use stable IDs rather than expiring signed URLs.
+
+## Playback and UI
+
+`PlaybackService`, a MediaLibraryService, owns ExoPlayer and the media session. `PlayerConnection` exposes commands/state to `MusicViewModel`; the Activity does not own audio. The service coordinates focus, video surfaces, queues, crossfade, timers, equalizer and recovery.
+
+Resolver/session/lease helpers and `QueuePreloader` prepare bounded current/upcoming sources. Rejections refresh sessions/formats under bounded recovery. `ProviderFailureGate` pauses audio/video resolution across songs on verification/rate limits. Manual retries do not clear that gate; expiry or a different validated connection does. Temporary transport/stream failures retain the existing two-retry budget. Safe failure details cross the media session through track-scoped extras; the UI offers retry countdowns and external YouTube handling that excludes Aroha's own link handler. This cannot remove YouTube's network restrictions.
+
+`ListeningSession` measures actual heard time for once-per-play completions (80%) and early skips (<30 seconds); failure, seek position and unheard tracks do not create negative preference signals. Optional completion fields migrate existing history without resetting it. Quick Picks acquires related-song/artist candidates from positive local evidence and re-ranks meaningful feedback changes on Default, retaining a larger candidate pool, recording-alias exclusions, artist diversity and supported discovery slots. Feedback metadata stays in app-private storage.
+
+`MediaCache` separates streaming cache and saved downloads. `MusicDownloadService` owns user-requested background transfers.
+
+Android Auto callbacks expose browsable library/search items. Widgets use RemoteViews, immutable PendingIntents and short-lived controllers. No custom cloud backend or Cast receiver is configured; optional Firebase reporting is described below.
+
+`ArohaApp` coordinates Discover, Search, Glimpses, Library and Downloads plus player/settings overlays. StateFlows are observed with lifecycle awareness. Library Insights are local. Compose helpers support light/dark/AMOLED. `LegalInformation` reads bundled legal/privacy text on IO and displays it offline.
+
+Player expansion uses a shared seekable transition driven by `PlayerExpansionState`, including drag cancellation and predictive back. Browse/detail pages live inside the shared transition layout so covers connect across navigation; saveable page scopes preserve scroll state. `DetailScaffold` transforms one album/playlist cover between the hero and toolbar without decoding it for every scroll size. See [UI and motion behavior and verification](UI_MOTION.md).
+
+Glimpses uses two foreground preview players, separate adaptive video/original-audio merging, bounded source/response leases and the shared streaming byte cache. Highest available quality follows source and decoder capabilities; UHD successors warm data without retaining a second UHD decoder. Local listening/likes and separate bounded preview evidence rank all content types without title whitelists. Metadata/source warmup can happen before entry, and upcoming taste changes retain the visible anchor. Preview records respect Listening analytics and Clear history. Collection/full-player navigation uses shared artwork/title and fade/slide transitions. See [Glimpses behavior, resource bounds and provider limits](GLIMPSES.md).
+
+## Tests and assets
+
+Unit tests cover codecs, parsers, ranking, domain behavior and recovery. Instrumentation covers storage, media/UI and provider-dependent probes. Synthetic URLs and records in tests are intentional fixtures. Optimized-build/device checks remain important for R8, reflection and desugaring.
+
+Only the final Aroha Music artwork, native icons and licensed Plus Jakarta Sans font are bundled. No demo catalog, music files or cover photography ship with the app.
+
+## Optional usage and crash reporting
+
+`UsageReporting` owns a separate local reporting preference. Mutually exclusive `src/firebase` and `src/noFirebase` backends are selected with `-PfirebaseAnalytics=true`; the default contains no SDK. The FirebaseInitProvider is removed. New Firebase installations enable reporting by default; a saved opt-out is preserved. The backend initializes Firebase only while reporting is enabled and uses automatic events without any playback/library hooks. Turning reporting off disables collection and resets local SDK analytics data. See FIREBASE.md and PRIVACY.md.
+
+Privacy settings use separate App usage and Listening tabs. Local listening and history controls do not change remote reporting.
+
+`CrashReporting` owns an independent, default-off preference. Optional Firebase builds provide a Crashlytics backend; the default build has none. A fatal-handler wrapper drops exception messages, causes and suppressed details before forwarding bounded source frames. `FreezeWatchdog` samples prolonged foreground main-thread delays only when reporting is enabled; these are nonfatal responsiveness samples, distinct from SDK/platform ANR reports. Settings → App health exposes the reporting control and local per-version fixed-category operation counts from `HealthEvents`/`AppHealth`. Counts can be cleared or exported explicitly and are not uploaded automatically.
+
+The consent-gated, confirmed Crashlytics test control and intentional exception are compiled only from `src/debug`. Release, preview and benchmark variants use a no-op implementation from `src/nonDebug`. The user has verified delivery of the intentional debug fatal report in the Firebase console; production alerts and optimized mapping verification remain separate operational checks.
+
+## Update checks
+
+`updates/UpdateRepository` serializes scheduled/manual requests, keeps a private release-note/ETag cache, compares stable semantic versions, and respects network/rate-limit backoff. Two network-constrained, persisted JobScheduler tasks target the next local morning (08:00) and evening (19:00). Each re-enqueues its next occurrence; clock/timezone changes reset scheduling. Repository window tokens prevent duplicate automatic checks in the same window, and Activity foreground entry catches up if due. Settings opens the same update dialog immediately. A compact banner remains available, a new version prompts until dismissed, and the background task can send one local notification per version if permission/channel settings allow it. Release bodies are text, with maintainer HTML comments hidden; no remote images or scripts execute.
+
+`UpdateDownload` bounds user-requested APK transfers, restricts redirect hosts, checks the GitHub SHA-256 asset digest and removes invalid/partial files. `UpdateInstaller` verifies the archive's application ID, exact release version, increasing version code and installed signer set before sharing a narrowly scoped cached APK with Android's installer. It requests installation access on an explicit Install update action, retains browser fallback and checks the installed version after restart rather than treating an installer launch as success. Releases without an asset digest use the browser flow. Installation always requires user confirmation. See OPERATIONS.md for release identity gates, dependency/source analysis, upgrade fixtures and synthetic health workflows.
+
+Search All uses bounded, explicit category previews from `groupedSearchResults`. Dedicated filters retain full append order and provider continuation, with repeated cursor/empty page guards. Library search stays local and separate from provider song results. Category/query changes cancel old page jobs and clear cursor state, preventing cross-category result leakage.

@@ -1,0 +1,66 @@
+name: Upgrade preservation
+on:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      baseline_ref:
+        description: 'Previous source commit or tag to upgrade from'
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: upgrade-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  upgrade:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        api: [26, 35]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;36.0.0'
+          log-accepted-android-sdk-licenses: false
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6
+      - name: Build baseline in a separate source snapshot
+        env:
+          BASELINE_REF: ${{ inputs.baseline_ref || github.event.pull_request.base.sha }}
+        run: |
+          baseline_commit=$(git rev-parse --verify --end-of-options "$BASELINE_REF^{commit}")
+          mkdir "$RUNNER_TEMP/upgrade-baseline"
+          git archive "$baseline_commit" | tar -x -C "$RUNNER_TEMP/upgrade-baseline"
+          cd "$RUNNER_TEMP/upgrade-baseline"
+          bash gradlew :app:assembleDebug
+          cp app/build/outputs/apk/debug/app-debug.apk "$RUNNER_TEMP/previous.apk"
+      - name: Build candidate and upgrade fixtures
+        run: ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest
+      - name: Enable emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Install candidate over seeded baseline
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
+        with:
+          api-level: ${{ matrix.api }}
+          arch: x86_64
+          disable-animations: true
+          script: python3 scripts/upgrade_check.py --adb "$ANDROID_HOME/platform-tools/adb" --serial emulator-5554 --tools "$ANDROID_HOME/build-tools/36.0.0" --previous "$RUNNER_TEMP/previous.apk" --candidate app/build/outputs/apk/debug/app-debug.apk --tests app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk --output upgrade-report.json
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: upgrade-api-${{ matrix.api }}
+          path: upgrade-report.json
+          retention-days: 30

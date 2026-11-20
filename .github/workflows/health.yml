@@ -1,0 +1,97 @@
+name: App health
+on:
+  release:
+    types: [published]
+  schedule:
+    - cron: '25 4 * * 1'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: app-health
+  cancel-in-progress: false
+jobs:
+  release-delivery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4
+        with:
+          packages: 'platform-tools build-tools;36.0.0'
+          log-accepted-android-sdk-licenses: false
+      - name: Verify published downloads, checksum and production signing identity
+        env:
+          EXPECTED_CERTIFICATE: ${{ vars.RELEASE_CERT_SHA256 }}
+        run: |
+          python3 scripts/release_health.py --tools "$ANDROID_HOME/build-tools/36.0.0" \
+            --certificate "$EXPECTED_CERTIFICATE" --output release-health.json
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: release-health
+          path: release-health.json
+          retention-days: 30
+  providers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;36.0.0'
+          log-accepted-android-sdk-licenses: false
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6
+      - name: Enable emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Probe public providers with bounded requests
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
+        with:
+          api-level: 35
+          arch: x86_64
+          disable-animations: true
+          script: ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.arohamusic.app.ProviderHealthTest -Pandroid.testInstrumentationRunnerArguments.liveProviders=true
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: provider-health
+          path: app/build/reports/androidTests/
+          retention-days: 30
+  dashboard:
+    if: always()
+    needs: [release-delivery, providers]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Maintainer health dashboard
+        env:
+          RELEASE_RESULT: ${{ needs.release-delivery.result }}
+          PROVIDER_RESULT: ${{ needs.providers.result }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          {
+            echo '# Aroha Music health'
+            echo '| Check | Result |'
+            echo '| --- | --- |'
+            echo "| Published update delivery | $RELEASE_RESULT |"
+            echo "| Public provider smoke tests | $PROVIDER_RESULT |"
+            echo
+            echo "[Security checks](https://github.com/$REPOSITORY/actions/workflows/security.yml) · [Android checks](https://github.com/$REPOSITORY/actions/workflows/android.yml) · [Open dependency PRs](https://github.com/$REPOSITORY/pulls)"
+            echo
+            echo 'Crash reports and version adoption: open the configured Firebase project. Local operation counts can be exported by users from Settings → App health. These sources cover participating installations, not all users.'
+            echo 'Response owner: repository maintainer. See docs/OPERATIONS.md for triage and release recovery.'
+          } >> "$GITHUB_STEP_SUMMARY"
