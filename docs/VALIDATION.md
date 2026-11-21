@@ -1,5 +1,14 @@
 # Aroha Music validation
 
+## 1.3.1 updates, Settings and search — 22 November 2026
+
+- Debug, optimized unsigned release and instrumentation builds pass, together with 381 JVM tests, 48 Python publication/release checks and debug lint with no errors. The new tests cover successful-check reuse, server backoff/restart, update-state presentation, release-note filtering and the backward-compatible Glimpses preference.
+- Four targeted disposable-emulator checks cover available/current/checking/offline update states, download/cancel/install UI callbacks, 160% text with reachable actions, Glimpses hide/restore with four-tab navigation, missing/failed artist portraits, clipped artwork in every search category, player layering and a white played timeline. Artist/album navigation and collapsing headers are also checked.
+- UI checks use generated local media and deterministic metadata. Update action callbacks are exercised without downloading or installing an arbitrary fixture release. Production APK signing and an in-place upgrade must still be checked before publication; this does not establish physical-phone or live-provider behavior.
+- The public-source allowlist contains 455 files. Test screenshots, generated media, build outputs, logs and signing inputs remain outside public source. There are no new dependencies or permissions; existing installations keep Glimpses visible until the listener changes the new preference.
+- The upgrade runner builds each instrumentation APK against its corresponding app revision, seeds with the baseline fixture, and installs the candidate fixture only after upgrading. This avoids cross-version Kotlin linkage failures before the preservation test starts.
+- The corrected seeded-data upgrade from 1.3.0 passes on the local disposable emulator, including the second verification after process restart and the default visibility of Glimpses for an existing installation.
+
 ## 1.3.0 player and Home polish — 22 November 2026
 
 - SDK-free debug, optimized unsigned release and instrumentation builds pass, together with 375 JVM tests, 48 release/publication Python tests and debug lint (0 errors; 55 existing warnings).

@@ -4,6 +4,10 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class SearchPresentationTest {
+    @Test fun artistsWithoutChannelMetadataRemainDistinct() {
+        val artists = listOf("First artist", "Second artist").map { com.arohamusic.app.data.youtube.ArtistProfile(it) }
+        assertEquals(2, groupedSearchResults("artist", "Artists", emptyList(), emptyList(), artists, emptyList()).single().entries.size)
+    }
     @Test fun exactArtistAndAlbumCanRankAboveSongsAndCompletions() {
         val artist = com.arohamusic.app.data.youtube.ArtistProfile("Alex", channelUrl = "https://www.youtube.com/channel/alex")
         val weakSong = Track("song", "Another song", "Alex", "", "song", Source.YOUTUBE)

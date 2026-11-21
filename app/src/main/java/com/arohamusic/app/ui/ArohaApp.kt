@@ -25,6 +25,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -77,6 +78,7 @@ fun ArohaApp(vm: MusicViewModel) {
     val homeScroll = rememberLazyListState()
     val exitPreferences by vm.preferences.collectAsStateWithLifecycle()
     var destination by rememberSaveable { mutableStateOf(Destination.HOME) }
+    val destinations = Destination.entries.filter { exitPreferences.showGlimpses || it != Destination.GLIMPSES }
     var searchFocusRequest by remember { mutableIntStateOf(0) }
     var mood by rememberSaveable { mutableStateOf("For you") }
     var expandedPlayer by rememberSaveable { mutableStateOf(false) }
@@ -113,6 +115,12 @@ fun ArohaApp(vm: MusicViewModel) {
         if (target == Destination.SEARCH) searchFocusRequest++
         else { focus.clearFocus(); keyboard?.hide() }
         destination = target; playlistId = null
+    }
+    LaunchedEffect(exitPreferences.showGlimpses) {
+        if (!exitPreferences.showGlimpses) {
+            if (destination == Destination.GLIMPSES) navigate(Destination.HOME)
+            vm.closeGlimpseCollection(); vm.pauseGlimpsesLoading()
+        }
     }
     val library by vm.library.collectAsStateWithLifecycle()
     val current by vm.currentTrack.collectAsStateWithLifecycle()
@@ -229,7 +237,7 @@ fun ArohaApp(vm: MusicViewModel) {
             Row(Modifier.weight(1f).imePadding().then(if (wide) Modifier.navigationBarsPadding() else Modifier)) {
                 if(wide && !glimpseVisible) Column(Modifier.width(176.dp).fillMaxHeight().padding(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Brand(Modifier.padding(vertical = 20.dp))
-                    Destination.entries.forEach { item ->
+                    destinations.forEach { item ->
                         Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(if(item == destination) Lavender.copy(alpha = 0.12f) else Color.Transparent)
                             .motionClickable { navigate(item) }.padding(15.dp), verticalAlignment = Alignment.CenterVertically) {
                             MusicIcon(item.icon, null, tint = if(item == destination) Lavender else Muted, modifier = Modifier.size(21.dp))
@@ -238,7 +246,7 @@ fun ArohaApp(vm: MusicViewModel) {
                     }
                     Spacer(Modifier.weight(1f)); Text("YOUR WORLD. IN SOUND.", color = Muted, style = MaterialTheme.typography.labelSmall)
                 }
-                Box(Modifier.weight(1f)) { page(); if (linkLoading) LinearProgressIndicator(Modifier.fillMaxWidth().align(Alignment.TopCenter)) }
+                Box(Modifier.weight(1f).clipToBounds()) { page(); if (linkLoading) LinearProgressIndicator(Modifier.fillMaxWidth().align(Alignment.TopCenter)) }
                 if (wide && !glimpseVisible) current?.let { track ->
                     playerTransition.AnimatedVisibility(visible = { !it }, enter = fadeIn(tween(motionDuration(140))), exit = fadeOut(tween(motionDuration(140)))) {
                         CompositionLocalProvider(LocalPlayerVisibility provides this) {
@@ -260,9 +268,9 @@ fun ArohaApp(vm: MusicViewModel) {
             if ((!wide || glimpseVisible) && !imeOpen) {
                 if (glimpseVisible) CompositionLocalProvider(LocalDarkTheme provides true) {
                     MaterialTheme(colorScheme = darkColorScheme(surface = Color(0xFF101119), onSurface = Color.White, onSurfaceVariant = Color(0xFFB8B8C2))) {
-                        ArohaNavigation(destination, navigate)
+                        ArohaNavigation(destination, destinations, navigate)
                     }
-                } else ArohaNavigation(destination, navigate)
+                } else ArohaNavigation(destination, destinations, navigate)
             }
         }
         PlayerPresentation(vm, playerTransition, current, { playerExpansion.animateExpanded(false) }, { showQueue = true },
@@ -322,20 +330,20 @@ fun ArohaApp(vm: MusicViewModel) {
 }
 
 @Composable
-private fun ArohaNavigation(destination: Destination, onNavigate: (Destination) -> Unit) {
+private fun ArohaNavigation(destination: Destination, destinations: List<Destination>, onNavigate: (Destination) -> Unit) {
     val motion = motionProfile()
     val dark = LocalDarkTheme.current
     val indicatorColor = if (dark) Color.White.copy(alpha = .14f) else MaterialTheme.colorScheme.primaryContainer
     BoxWithConstraints(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface).navigationBarsPadding()
         .padding(horizontal = 4.dp, vertical = 4.dp)) {
-        val tabWidth = maxWidth / Destination.entries.size
-        val position by animateDpAsState(tabWidth * destination.ordinal,
+        val tabWidth = maxWidth / destinations.size
+        val position by animateDpAsState(tabWidth * destinations.indexOf(destination).coerceAtLeast(0),
             tween(motionDuration(MotionTokens.Spatial), easing = FastOutSlowInEasing), label = "Navigation indicator")
         Box(Modifier.offset(x = position, y = 8.dp).width(tabWidth).height(32.dp), contentAlignment = Alignment.Center) {
             Box(Modifier.width(56.dp).fillMaxHeight().background(indicatorColor, RoundedCornerShape(50)))
         }
         Row(Modifier.fillMaxWidth()) {
-            Destination.entries.forEach { item ->
+            destinations.forEach { item ->
                 val selected = item == destination
                 val source = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
                 val emphasis by animateFloatAsState(if (selected && motion.expressive) 1.12f else 1f,

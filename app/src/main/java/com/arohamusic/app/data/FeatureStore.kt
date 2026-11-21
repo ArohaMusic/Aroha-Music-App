@@ -38,6 +38,7 @@ class FeatureStore(private val context: Context) {
 object FeatureCodec {
     fun encode(s: FeatureState): String = JSONObject().apply {
         put("preferences", JSONObject().apply {
+            put("showGlimpses", s.preferences.showGlimpses)
             put("stopOnExit", s.preferences.stopOnExit); put("rememberQueue", s.preferences.rememberQueue); put("wifiQuality", s.preferences.wifiQuality.name)
             put("analyticsEnabled", s.preferences.analyticsEnabled); put("videoMode", s.preferences.videoMode.name); put("videoQuality", s.preferences.videoQuality.name); put("glimpseQuality", s.preferences.glimpseQuality.name)
             put("mobileQuality", s.preferences.mobileQuality.name); put("qualityDefaultsVersion", 1); put("collectHistory", s.preferences.collectHistory)
@@ -150,7 +151,8 @@ object FeatureCodec {
             runCatching { LibraryFilter.valueOf(p.getString("libraryFilter")) }.getOrDefault(LibraryFilter.ALL), p.optBoolean("stopOnExit", false), p.optBoolean("analyticsEnabled", true),
             runCatching { VideoPlaybackMode.valueOf(p.getString("videoMode")) }.getOrDefault(VideoPlaybackMode.FALLBACK),
             runCatching { VideoQuality.valueOf(p.getString("videoQuality")) }.getOrDefault(VideoQuality.HIGHEST),
-            runCatching { GlimpseQuality.valueOf(p.getString("glimpseQuality")) }.getOrDefault(GlimpseQuality.AUTO)),
+            runCatching { GlimpseQuality.valueOf(p.getString("glimpseQuality")) }.getOrDefault(GlimpseQuality.AUTO),
+            p.optBoolean("showGlimpses", true)),
             QueueSnapshot(queueTracks, q.optInt("index"), q.optLong("positionMs"), q.optBoolean("shuffle"), q.optInt("repeat"), q.optBoolean("recommendationChain")).sanitized(),
             List(h.length()) { i -> h.getJSONObject(i).let { ListenRecord(it.getString("id"), it.getString("day"),
                 it.optLong("ms").coerceAtLeast(0), it.optInt("plays").coerceAtLeast(0), it.optInt("skips").coerceAtLeast(0), it.optInt("completions").coerceAtLeast(0)) } },

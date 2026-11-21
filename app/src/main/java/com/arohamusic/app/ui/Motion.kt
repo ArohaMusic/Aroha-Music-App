@@ -127,6 +127,7 @@ fun Modifier.browseArtwork(key: String): Modifier {
     if (!profile.enabled) return this
     return with(scope) {
         this@browseArtwork.sharedElement(rememberSharedContentState("browse-cover-$key"), visibility,
+            renderInOverlayDuringTransition = false,
             boundsTransform = { _, _ -> tween(profile.duration(MotionTokens.Spatial), easing = FastOutSlowInEasing) })
     }
 }

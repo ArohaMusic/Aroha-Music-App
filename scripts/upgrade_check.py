@@ -14,6 +14,8 @@ def main():
     parser.add_argument("--serial", required=True)
     parser.add_argument("--tools", type=Path, required=True)
     parser.add_argument("--previous", type=Path, required=True)
+    parser.add_argument("--previous-tests", type=Path, required=True,
+                        help="Instrumentation APK compiled from the previous source revision")
     parser.add_argument("--candidate", type=Path, required=True)
     parser.add_argument("--tests", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
@@ -34,7 +36,9 @@ def main():
             or candidate["version_code"] < previous["version_code"]):
         raise ValueError("Fixture APKs must share application/signing identity and cannot downgrade")
     run("install", str(args.previous))
-    run("install", str(args.tests))
+    # Kotlin model constructors/copy methods can change between revisions. The
+    # seeder must link against the baseline app, never against candidate classes.
+    run("install", str(args.previous_tests))
 
     def instrument(method):
         result = run("shell", "am", "instrument", "-w", "-r", "-e", "upgradeFixture", "true", "-e", "class",
@@ -46,6 +50,7 @@ def main():
     instrument("seed")
     run("shell", "am", "force-stop", APP_ID)
     run("install", "-r", str(args.candidate))
+    run("install", "-r", str(args.tests))
     instrument("verify")
     # Verify again after another process restart, without reseeding.
     run("shell", "am", "force-stop", APP_ID)

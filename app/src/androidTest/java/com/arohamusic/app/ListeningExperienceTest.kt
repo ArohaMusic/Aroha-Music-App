@@ -34,6 +34,9 @@ import com.arohamusic.app.playback.PlaybackService
 import com.arohamusic.app.ui.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.MutableStateFlow
+import com.arohamusic.app.updates.*
+import com.arohamusic.app.data.youtube.ArtistProfile
 import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -128,6 +131,176 @@ class ListeningExperienceTest {
             app.library.update { oldLibrary }; app.features.update { oldFeatures }
             Configurator.getInstance().setWaitForIdleTimeout(oldIdle)
             audio.delete(); cover.delete()
+        }
+    }
+
+    @Test fun updateDialogShowsClearStatesAndOnlyProductHighlights(): Unit = runBlocking {
+        fixture { scenario, _, _ ->
+            val current = com.arohamusic.app.BuildConfig.VERSION_NAME
+            val release = GitHubRelease("999.0.0", "## What's new\n- Clearer lyrics settings.\nInstall Aroha-Music-999.0.0.apk on Android 8.0 or newer.\n## Corresponding dependency sources\n- Runtime library source archives.", RELEASES_URL,
+                "https://github.com/ArohaMusic/Aroha-Music-App/releases/download/v999.0.0/Aroha-Music-999.0.0.apk", "ab".repeat(32))
+            val state = mutableStateOf(UpdateState(release = release, lastChecked = System.currentTimeMillis()))
+            val install = mutableStateOf(InstallState())
+            val checks = AtomicInteger(); val installs = AtomicInteger(); val downloads = AtomicInteger()
+            scenario.onActivity { activity -> activity.setContent {
+                ArohaTheme(ThemePreferences(mode = ThemeMode.DARK, reduceMotion = true)) {
+                    UpdateDialogContent(state.value, install.value, current, { checks.incrementAndGet() }, {},
+                        { downloads.incrementAndGet(); install.value = InstallState(downloading = true, progress = .42f) },
+                        { installs.incrementAndGet() }, { install.value = InstallState() }, {}, {})
+                }
+            } }
+            assertTrue(device.wait(Until.hasObject(By.text("Update available")), 4_000))
+            assertTrue(device.hasObject(By.text(current)))
+            assertTrue(device.hasObject(By.text("999.0.0")))
+            assertTrue(device.hasObject(By.text("Clearer lyrics settings.")))
+            assertFalse(device.hasObject(By.textContains("Corresponding dependency")))
+            assertFalse(device.hasObject(By.textContains("Install Aroha-Music-")))
+            capture("update-available")
+            click(By.text("Download update"))
+            eventually("Download action invoked") { downloads.get() == 1 }
+            assertTrue(device.wait(Until.hasObject(By.text("42% downloaded")), 4_000))
+            click(By.text("Cancel download"))
+            instrumentation.runOnMainSync { install.value = InstallState(readyVersion = release.version) }
+            click(By.text("Install update")); eventually("Install action invoked") { installs.get() == 1 }
+            instrumentation.runOnMainSync { install.value = InstallState(); state.value = UpdateState(release.copy(version = current), lastChecked = System.currentTimeMillis()) }
+            assertTrue(device.wait(Until.hasObject(By.text("You're up to date")), 4_000))
+            assertFalse(device.hasObject(By.text("What's new")))
+            capture("update-current")
+            click(By.text("Check again")); eventually("Check action invoked") { checks.get() == 1 }
+            assertTrue(device.hasObject(By.text("You're up to date")))
+            assertFalse(device.hasObject(By.textContains("Please wait")))
+            capture("update-current")
+            instrumentation.runOnMainSync { state.value = state.value.copy(checking = true) }
+            assertTrue(device.wait(Until.hasObject(By.text("Checking for updates")), 4_000))
+            assertFalse(device.hasObject(By.text("You're up to date")))
+            instrumentation.runOnMainSync { state.value = state.value.copy(checking = false, error = "Couldn't check for updates. Check your connection and try again.") }
+            assertTrue(device.wait(Until.hasObject(By.text("Couldn't check for updates")), 4_000))
+            assertFalse(device.hasObject(By.text("You're up to date")))
+            capture("update-offline")
+        }
+    }
+
+    @Test fun largeTextUpdateActionsStayReachableAndGlimpsesCanBeHidden(): Unit = runBlocking {
+        fixture { scenario, vm, _ ->
+            scenario.onActivity { activity -> activity.setContent {
+                val density = LocalDensity.current.density
+                ArohaTheme(ThemePreferences(mode = ThemeMode.DARK, reduceMotion = true)) {
+                    CompositionLocalProvider(LocalDensity provides Density(density, 1.6f)) {
+                        UpdateDialogContent(UpdateState(lastChecked = System.currentTimeMillis()), InstallState(), "1.3.0", {}, {}, {}, {}, {}, {}, {})
+                    }
+                }
+            } }
+            assertTrue(device.wait(Until.hasObject(By.text("Done")), 4_000))
+            val done = device.findObject(By.text("Done")).visibleBounds
+            assertTrue(done.height() > 0 && done.bottom < device.displayHeight)
+            capture("update-large-text")
+            scenario.onActivity { activity -> activity.setContent {
+                val features by vm.features.collectAsStateWithLifecycle()
+                ArohaTheme(features.theme) { Surface(Modifier.fillMaxSize().semantics { testTagsAsResourceId = true }) { ArohaApp(vm) } }
+            } }
+            assertTrue(device.wait(Until.hasObject(By.desc("Glimpses")), 4_000))
+            click(By.desc("Settings"))
+            click(By.text("Show Glimpses"))
+            eventually("Glimpses visibility is saved") { !vm.features.value.preferences.showGlimpses }
+            capture("settings-navigation")
+            click(By.desc("Close settings"))
+            assertFalse(device.hasObject(By.desc("Glimpses")))
+            click(By.desc("Library"))
+            assertTrue(device.wait(Until.hasObject(By.text("Your library")), 4_000))
+            capture("navigation-four-tabs")
+            click(By.desc("Discover")); click(By.desc("Settings")); click(By.text("Show Glimpses"))
+            eventually("Glimpses can be restored") { vm.features.value.preferences.showGlimpses }
+            click(By.desc("Close settings"))
+            assertTrue(device.wait(Until.hasObject(By.desc("Glimpses")), 4_000))
+        }
+    }
+
+    @Test fun searchPortraitsHaveFallbacksAndStayBelowChipsAndPlayer(): Unit = runBlocking {
+        fixture { scenario, vm, tracks ->
+            app.features.update { it.copy(theme = it.theme.copy(reduceMotion = false, motion = MotionLevel.FULL)) }
+            eventually("Full motion enabled") { !vm.features.value.theme.reduceMotion }
+            scenario.onActivity { activity ->
+                vm.player.play(tracks.first(), tracks.take(2), ordered = true); vm.player.pause()
+                activity.setContent {
+                    val features by vm.features.collectAsStateWithLifecycle()
+                    ArohaTheme(features.theme) { Surface(Modifier.fillMaxSize().semantics { testTagsAsResourceId = true }) { ArohaApp(vm) } }
+                }
+            }
+            delay(650)
+            if (android.os.Build.VERSION.SDK_INT >= 33) instrumentation.uiAutomation.clearCache()
+            click(By.desc("Search"))
+            assertTrue(device.wait(Until.hasObject(By.res("search-filters")), 4_000))
+            delay(600)
+            scenario.onActivity { activity ->
+                if (android.os.Build.VERSION.SDK_INT >= 30) activity.window.insetsController?.hide(android.view.WindowInsets.Type.ime())
+                fun <T> flow(name: String): MutableStateFlow<T> = MusicViewModel::class.java.getDeclaredField(name).let {
+                    it.isAccessible = true
+                    @Suppress("UNCHECKED_CAST") (it.get(vm) as MutableStateFlow<T>)
+                }
+                flow<String>("mutableSearchQuery").value = "Fixture"
+                flow<String>("mutableSearchKind").value = "Artists"
+                flow<Boolean>("mutableSearchLoading").value = false
+                flow<List<ArtistProfile>>("mutableSearchArtists").value = (0..19).map { index ->
+                    ArtistProfile("Fixture artist $index", when (index) { 0 -> ""; 1 -> "file:///nonexistent-artist-fixture.png"; else -> tracks.first().artwork })
+                }
+            }
+            assertTrue(device.wait(Until.hasObject(By.desc("Artist image unavailable for Fixture artist 0")), 4_000))
+            assertTrue(device.wait(Until.hasObject(By.descContains("Artist image unavailable for Fixture artist 1")), 4_000))
+            capture("search-artist-fallbacks")
+            val list = device.findObject(By.res("search-results"))
+            list.scroll(Direction.DOWN, .45f); delay(600)
+            fun assertNoCoverInHeader(bottom: Int) {
+                val image = instrumentation.uiAutomation.takeScreenshot()
+                try {
+                    var escaped = 0
+                    for (y in 0 until bottom.coerceAtMost(image.height)) for (x in 0 until image.width) {
+                        val c = image.getPixel(x, y)
+                        if (kotlin.math.abs(android.graphics.Color.red(c) - 178) < 5 &&
+                            kotlin.math.abs(android.graphics.Color.green(c) - 45) < 5 && kotlin.math.abs(android.graphics.Color.blue(c) - 55) < 5) escaped++
+                    }
+                    assertEquals("Artist artwork cannot escape into the header", 0, escaped)
+                } finally { image.recycle() }
+            }
+            assertNoCoverInHeader(device.findObject(By.res("search-filters")).visibleBounds.bottom)
+            capture("search-artist-scroll")
+            click(By.desc("Open full player"))
+            assertTrue(device.wait(Until.hasObject(By.desc("Close player")), 4_000))
+            delay(700)
+            assertNoCoverInHeader(device.findObject(By.text("NOW PLAYING")).visibleBounds.bottom)
+            assertFalse("Search artwork is hidden behind the full player", device.hasObject(By.descStartsWith("Artist image unavailable")))
+            instrumentation.runOnMainSync { vm.player.seek(60_000) }
+            eventually("Seek is applied") { vm.playback.value.position >= 59_000 }
+            val timeline = device.findObject(By.desc("Song timeline")).visibleBounds
+            val image = instrumentation.uiAutomation.takeScreenshot()
+            try {
+                val pixel = image.getPixel(timeline.left + timeline.width() / 4, timeline.centerY())
+                assertTrue("The played timeline is white", android.graphics.Color.red(pixel) >= 240 &&
+                    android.graphics.Color.green(pixel) >= 240 && android.graphics.Color.blue(pixel) >= 240)
+            } finally { image.recycle() }
+            capture("search-player-layering")
+            click(By.desc("Close player"))
+            assertTrue(device.wait(Until.hasObject(By.res("search-filters")), 4_000))
+            for (kind in listOf("Songs", "Videos", "Albums", "Playlists", "Library", "All")) {
+                scenario.onActivity {
+                    fun <T> flow(name: String): MutableStateFlow<T> = MusicViewModel::class.java.getDeclaredField(name).let { field ->
+                        field.isAccessible = true
+                        @Suppress("UNCHECKED_CAST") (field.get(vm) as MutableStateFlow<T>)
+                    }
+                    flow<String>("mutableSearchQuery").value = "Suggestion"
+                    flow<String>("mutableSearchKind").value = kind
+                    flow<List<Track>>("mutableSearchResults").value = tracks
+                    flow<List<Track>>("mutableSearchVideos").value = tracks
+                    flow<List<BrowseCollection>>("mutableSearchCollections").value = (0..23).map { index ->
+                        BrowseCollection("clip-$index", "Suggestion collection $index", "Fixture creator", tracks.first().artwork, "", 25,
+                            if (index % 2 == 0) CollectionKind.ALBUM else CollectionKind.PLAYLIST)
+                    }
+                }
+                delay(500)
+                device.findObject(By.res("search-results")).scroll(Direction.DOWN, .45f)
+                delay(500)
+                assertNoCoverInHeader(device.findObject(By.res("search-filters")).visibleBounds.bottom)
+                capture("search-clipped-${kind.lowercase()}")
+            }
         }
     }
 

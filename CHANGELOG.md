@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 1.3.1
+
+- Redesign the update modal with explicit availability, installed/available versions, readable product highlights and distinct download, progress and install actions.
+- Show the same update status in Settings. Reuse recent successful checks without displaying a cooldown error; explain actual GitHub rate limits with a retry time.
+- Keep installation instructions and dependency-source details on GitHub while excluding them from the in-app highlights.
+- Add Settings icons and neutral controls, plus a persistent Show Glimpses switch that hides its tab and shortcuts and stops feed loading.
+- Use a white played timeline on dark surfaces and a dark timeline on light surfaces, including seeking and buffering feedback.
+- Contain search artwork below the search field and category chips and behind the player. Add visible artist placeholders for blank, loading or failed images, and retain distinct artists when channel metadata is absent.
+
 ## 1.3.0
 
 - Remove the optional minimal listening screen and its player entry point.

@@ -76,6 +76,7 @@ fun UndoRemoval(vm: MusicViewModel) {
 @Composable
 fun PlaylistEditor(vm: MusicViewModel, playlist: Playlist, onBack: () -> Unit, onRename: () -> Unit, onDelete: () -> Unit, onMore: (Track) -> Unit) {
     val library by vm.library.collectAsStateWithLifecycle()
+    val features by vm.features.collectAsStateWithLifecycle()
     val activeId by vm.activeTrackId.collectAsStateWithLifecycle()
     var query by remember(playlist.id) { mutableStateOf("") }
     var selected by remember(playlist.id) { mutableStateOf(emptySet<String>()) }
@@ -95,7 +96,7 @@ fun PlaylistEditor(vm: MusicViewModel, playlist: Playlist, onBack: () -> Unit, o
             if (playlist.description.isNotBlank()) Text(playlist.description, Modifier.padding(vertical = 8.dp), color = Muted)
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 MotionButton(enabled = tracks.isNotEmpty(), onClick = { val queue = tracks.filter { selected.isEmpty() || it.id in selected }; queue.firstOrNull()?.let { vm.play(it, queue) } }) { Text(if (selected.isEmpty()) "Play" else "Play selected") }
-                GlimpsesButton(tracks.isNotEmpty()) { vm.previewCollection(playlist.name, tracks) }
+                if (features.preferences.showGlimpses) GlimpsesButton(tracks.isNotEmpty()) { vm.previewCollection(playlist.name, tracks) }
                 MotionFilledTonalButton(enabled = tracks.isNotEmpty(), onClick = { val queue = tracks.shuffled(); vm.play(queue.first(), queue, ordered = true) }) { Text("Shuffle") }
                 MotionOutlinedButton(onClick = { editDetails = true }) { Text("Edit details") }
                 MotionOutlinedButton(onClick = onDelete) { Text("Delete playlist") }

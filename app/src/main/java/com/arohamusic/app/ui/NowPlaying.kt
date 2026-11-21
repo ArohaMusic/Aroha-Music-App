@@ -350,7 +350,7 @@ internal fun PlayerProgress(vm: MusicViewModel, track: Track, compact: Boolean) 
     var preview by remember(track.id) { mutableStateOf<Long?>(null) }
     val duration = state.duration.takeIf { it > 0 } ?: track.durationSeconds * 1000
     Box(Modifier.fillMaxWidth()) {
-    if (preview != null) Surface(modifier = Modifier.align(Alignment.TopCenter), shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp), color = Glass) { Text(timeLabel(preview!!), color = Lavender, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) }
+    if (preview != null) Surface(modifier = Modifier.align(Alignment.TopCenter), shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp), color = Glass) { Text(timeLabel(preview!!), color = ContentColor, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) }
     PlaybackTimeline(preview ?: state.position, duration, state.bufferedPosition, state.buffering,
         modifier = Modifier.padding(top = if (compact) 0.dp else 22.dp), interactive = true,
         onPreview = { preview = it }, onSeek = { vm.player.seek(it); preview = null })

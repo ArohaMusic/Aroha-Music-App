@@ -18,6 +18,7 @@ internal data class UpdateState(
     val error: String? = null,
     val dismissedVersion: String? = null,
     val notifiedVersion: String? = null,
+    val retryAt: Long = 0,
 )
 internal data class SavedUpdate(
     val json: String? = null, val etag: String? = null, val checked: Long = 0,
@@ -52,7 +53,10 @@ internal class UpdateRepository(
         saved = withContext(Dispatchers.IO) { storage.read() }
         val release = runCatching { saved.json?.let(::parseRelease) }.getOrNull()
         if (saved.json != null && release == null) saved = saved.copy(json = null, etag = null, checked = 0)
-        mutableState.value = UpdateState(release = release, lastChecked = saved.checked, dismissedVersion = saved.dismissed, notifiedVersion = saved.notified)
+        val serverBackoff = saved.manualAfter > clock() && saved.manualAfter == saved.nextAttempt && saved.manualAfter != saved.checked + 30_000
+        mutableState.value = UpdateState(release = release, lastChecked = saved.checked, dismissedVersion = saved.dismissed, notifiedVersion = saved.notified,
+            retryAt = if (serverBackoff) saved.manualAfter else 0,
+            error = if (serverBackoff) "GitHub temporarily limited update checks." else null)
         loaded = true
     }
     suspend fun load() = mutex.withLock { loadLocked() }
@@ -73,10 +77,11 @@ internal class UpdateRepository(
         val blockedUntil = if (manual) saved.manualAfter else saved.nextAttempt
         val recentlyChecked = UpdateWindows.sameWindow(saved.checked, now)
         if (now < blockedUntil || (!manual && recentlyChecked)) {
-            if (manual && now < blockedUntil) mutableState.value = mutableState.value.copy(error = "Please wait a little before checking again.")
+            // A recent successful response remains a successful result. Reopening the
+            // dialog during the request cooldown must never manufacture an error.
             return@withLock
         }
-        mutableState.value = mutableState.value.copy(checking = true, error = null)
+        mutableState.value = mutableState.value.copy(checking = true, error = null, retryAt = 0)
         val started = System.nanoTime()
         try {
             val response = fetcher.fetch(saved.etag.takeIf { saved.json != null })
@@ -96,7 +101,7 @@ internal class UpdateRepository(
             }
             withContext(Dispatchers.IO) { storage.write(next) }
             saved = next
-            mutableState.value = mutableState.value.copy(release = next.json?.let(::parseRelease), lastChecked = now, error = null)
+            mutableState.value = mutableState.value.copy(release = next.json?.let(::parseRelease), lastChecked = now, error = null, retryAt = 0)
             runCatching { onResult(true, (System.nanoTime() - started) / 1_000_000) }
         } catch (error: CancellationException) {
             throw error
@@ -110,7 +115,10 @@ internal class UpdateRepository(
             catch (cancelled: CancellationException) { throw cancelled }
             catch (_: Exception) { /* Full/unavailable storage must not crash playback. */ }
             saved = next
-            mutableState.value = mutableState.value.copy(error = "Couldn't check GitHub for updates. Check your connection and try again later.")
+            mutableState.value = mutableState.value.copy(
+                retryAt = serverRetry?.let { next.manualAfter } ?: 0,
+                error = if (serverRetry != null) "GitHub temporarily limited update checks."
+                    else "Couldn't check for updates. Check your connection and try again.")
         } finally {
             mutableState.value = mutableState.value.copy(checking = false)
         }

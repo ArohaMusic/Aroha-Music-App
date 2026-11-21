@@ -42,8 +42,9 @@ jobs:
           mkdir "$RUNNER_TEMP/upgrade-baseline"
           git archive "$baseline_commit" | tar -x -C "$RUNNER_TEMP/upgrade-baseline"
           cd "$RUNNER_TEMP/upgrade-baseline"
-          bash gradlew :app:assembleDebug
+          bash gradlew :app:assembleDebug :app:assembleDebugAndroidTest
           cp app/build/outputs/apk/debug/app-debug.apk "$RUNNER_TEMP/previous.apk"
+          cp app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk "$RUNNER_TEMP/previous-tests.apk"
       - name: Build candidate and upgrade fixtures
         run: ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest
       - name: Enable emulator acceleration
@@ -57,7 +58,7 @@ jobs:
           api-level: ${{ matrix.api }}
           arch: x86_64
           disable-animations: true
-          script: python3 scripts/upgrade_check.py --adb "$ANDROID_HOME/platform-tools/adb" --serial emulator-5554 --tools "$ANDROID_HOME/build-tools/36.0.0" --previous "$RUNNER_TEMP/previous.apk" --candidate app/build/outputs/apk/debug/app-debug.apk --tests app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk --output upgrade-report.json
+          script: python3 scripts/upgrade_check.py --adb "$ANDROID_HOME/platform-tools/adb" --serial emulator-5554 --tools "$ANDROID_HOME/build-tools/36.0.0" --previous "$RUNNER_TEMP/previous.apk" --previous-tests "$RUNNER_TEMP/previous-tests.apk" --candidate app/build/outputs/apk/debug/app-debug.apk --tests app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk --output upgrade-report.json
       - if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:

@@ -79,6 +79,29 @@ class UpdateRepositoryTest {
         repo.check()
         assertEquals(3, requests)
     }
+    @Test fun repeatedManualChecksReuseSuccessWithoutInventingAnError() = runBlocking {
+        var requests = 0
+        val repo = UpdateRepository(Memory(), { requests++; ReleaseResponse.Found(release(), null) }, { 1_000_000 })
+        repo.check(manual = true)
+        val first = repo.state.value
+        repeat(5) { repo.check(manual = true) }
+        assertEquals(1, requests)
+        assertEquals(first, repo.state.value)
+        assertNull(repo.state.value.error)
+        assertEquals(UpdateStatus.AVAILABLE, repo.state.value.presentation("1.0.0").status)
+    }
+
+    @Test fun serverBackoffHasAnExplicitRetryTimeAndKeepsTheLastAvailableRelease() = runBlocking {
+        val memory = Memory(SavedUpdate(json = release(), checked = 800_000))
+        val repo = UpdateRepository(memory, { throw ReleaseRequestException(1_600_000) }, { 1_000_000 })
+        repo.check(manual = true)
+        assertEquals(1_600_000L, repo.state.value.retryAt)
+        assertEquals(UpdateStatus.AVAILABLE, repo.state.value.presentation("1.0.0").status)
+        assertNotNull(repo.state.value.error)
+        val restarted = UpdateRepository(memory, { error("Backoff should survive restart") }, { 1_000_100 })
+        restarted.check(manual = true)
+        assertEquals(1_600_000L, restarted.state.value.retryAt)
+    }
     @Test fun etag304AndDismissalSurviveRestart() = runBlocking {
         var now = 1_000_000L
         val memory = Memory()

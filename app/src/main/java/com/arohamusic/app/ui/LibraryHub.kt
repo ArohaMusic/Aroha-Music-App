@@ -243,10 +243,11 @@ private fun LibraryShortcut(title: String, subtitle: String, icon: androidx.comp
 @UnstableApi
 @Composable
 private fun CollectionActions(vm: MusicViewModel, tracks: List<Track>, save: () -> Unit) {
+    val features by vm.features.collectAsStateWithLifecycle()
     Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         MotionTextButton(enabled = tracks.isNotEmpty(), onClick = { vm.play(tracks.first(), tracks) }) { Text("Play all") }
         MotionTextButton(enabled = tracks.isNotEmpty(), onClick = { val shuffled = tracks.shuffled(); vm.play(shuffled.first(), shuffled) }) { Text("Shuffle") }
-        GlimpsesButton(tracks.isNotEmpty()) { vm.previewCollection("Your library mix", tracks) }
+        if (features.preferences.showGlimpses) GlimpsesButton(tracks.isNotEmpty()) { vm.previewCollection("Your library mix", tracks) }
         MotionTextButton(enabled = tracks.isNotEmpty(), onClick = save) { Text("Save as playlist") }
     }
 }
@@ -303,7 +304,7 @@ fun ArtistDetail(vm: MusicViewModel, page: ArtistPageState, onMore: (Track) -> U
                     MotionTextButton(enabled = page.songs.items.isNotEmpty(), onClick = { page.songs.items.firstOrNull()?.let { vm.play(it, page.songs.items) } }) { Text("Play all") }
                 }
             }
-            item { Box(Modifier.padding(horizontal = 22.dp)) { GlimpsesButton(page.songs.items.isNotEmpty()) { vm.previewCollection(page.name, page.songs.items) } } }
+            if (features.preferences.showGlimpses) item { Box(Modifier.padding(horizontal = 22.dp)) { GlimpsesButton(page.songs.items.isNotEmpty()) { vm.previewCollection(page.name, page.songs.items) } } }
             item(key = "artist-popular-shelf") {
                 if (page.songs.loading && page.songs.items.isEmpty()) Box(Modifier.padding(horizontal = 22.dp)) { SongSkeletons(4) }
                 else if (page.songs.items.isEmpty()) Text(page.songs.error ?: "No songs available.", color = Muted, modifier = Modifier.padding(horizontal = 22.dp))

@@ -1,15 +1,9 @@
 package com.arohamusic.app.ui
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Person
-import androidx.compose.material3.Icon
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.draw.clip
+import androidx.compose.material3.MaterialTheme
 import androidx.media3.common.util.UnstableApi
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
@@ -21,10 +15,7 @@ fun ArtistPortrait(vm: MusicViewModel, name: String, modifier: Modifier, imageUr
     val portrait = imageUrl.ifBlank { if (resolveByName) portraits[name] ?: vm.cachedPortrait(name) else "" }
     LaunchedEffect(name, imageUrl) { if (imageUrl.isBlank() && resolveByName) vm.requestPortrait(name) }
     val connectedModifier = modifier.browseArtwork("artist-${name.lowercase(java.util.Locale.ROOT)}")
-    if (portrait.isNotBlank()) CoverImage(portrait, "Artist image for $name", connectedModifier, highQuality = fullBleed, rounded = !fullBleed, animate = fullBleed)
-    else Box(connectedModifier.background(Glass), contentAlignment = Alignment.Center) {
-        MusicIcon(Icons.Rounded.Person, "Artist image unavailable for $name", tint = Muted, modifier = Modifier.size(48.dp))
-    }
+    ArtistAvatar(name, portrait, if (fullBleed) connectedModifier else connectedModifier.clip(MaterialTheme.shapes.small))
 }
 
 /** Render metadata immediately; request extra credits only when no byline is available. */

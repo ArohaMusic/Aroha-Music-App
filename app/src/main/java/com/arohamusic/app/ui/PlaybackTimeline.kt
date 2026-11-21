@@ -58,8 +58,8 @@ fun PlaybackTimeline(
             }
         }
     }
-    val accent = Lavender
-    val secondary = Mint
+    val accent = if (LocalDarkTheme.current) Color.White else Color(0xFF202124)
+    val secondary = accent
     val content = ContentColor
     Canvas(modifier.fillMaxWidth().height(if (interactive) 48.dp else 3.dp).then(controls)) {
         val y = size.height / 2
