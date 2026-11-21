@@ -31,12 +31,15 @@ Signed release inspects both the previous production APK and candidate using And
 
 Upgrade preservation builds the PR base and candidate with the same test signing key in separate source snapshots and runs on Android 8/API 26 and API 35 emulators. It seeds synthetic favorites, playlists, history, queue, local audio, settings and reporting opt-outs, installs the candidate with `adb install -r`, and verifies persistence again after restarting the process. Same-version reinstall is permitted in PR tests so dependency/fix PRs do not require version bumps; production signing/version checks are stricter. Download-manager database compatibility and real production-signed phone installation still require pre-publish testing. Never run the fixture on a personal device or an emulator containing an existing app installation: the runner refuses those cases.
 
-Example against a fresh disposable emulator, with baseline and candidate APKs already built using the same test key:
+The baseline seeder instrumentation must be built from the baseline source, and the verification instrumentation from the candidate source. Reusing candidate instrumentation against the old APK can fail before upgrade when Kotlin model signatures change.
+
+Example against a fresh disposable emulator, with baseline and candidate app/instrumentation APKs already built using the same test key:
 
 ```sh
 python3 scripts/upgrade_check.py --adb "$ANDROID_HOME/platform-tools/adb" \
   --serial emulator-5554 --tools "$ANDROID_HOME/build-tools/36.0.0" \
   --previous /tmp/previous.apk --candidate app/build/outputs/apk/debug/app-debug.apk \
+  --previous-tests /tmp/previous-tests.apk \
   --tests app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk \
   --output /tmp/upgrade-report.json
 ```

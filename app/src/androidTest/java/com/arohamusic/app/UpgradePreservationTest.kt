@@ -53,6 +53,7 @@ class UpgradePreservationTest {
         assertEquals(listOf("upgrade-fixture"), library.recentIds)
         val features = app.features.state.first()
         assertFalse(features.preferences.analyticsEnabled); assertFalse(features.preferences.collectHistory)
+        assertTrue("Existing listeners keep Glimpses visible", features.preferences.showGlimpses)
         assertEquals("Fixture listener", features.profile.name)
         assertEquals("upgrade-fixture", features.queue.tracks.single().id)
         assertEquals(12345L, features.queue.positionMs)
