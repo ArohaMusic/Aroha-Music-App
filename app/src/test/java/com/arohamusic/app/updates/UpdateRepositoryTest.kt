@@ -45,9 +45,9 @@ class UpdateRepositoryTest {
     }
     @Test fun acceptsOnlyTheCanonicalRepositoryAndPublishedAssetNames() {
         assertEquals("https://api.github.com/repos/ArohaMusic/Aroha-Music-App/releases/latest", RELEASE_API)
-        assertFalse(trustedReleaseUrl("https://github.com/lxexe/Aroha-Music-App/releases/tag/v1.25.0"))
-        assertFalse(trustedReleaseUrl("https://github.com/lxexe/Aroha-Music-App/releases/download/v1.25.0/Aroha-Music-1.25.0.apk", download = true))
-        assertFalse(trustedReleaseUrl("https://github.com/lxexe/Aroha-Music/releases/tag/v1.25.0"))
+        assertFalse(trustedReleaseUrl("https://github.com/untrusted-owner/Aroha-Music-App/releases/tag/v1.25.0"))
+        assertFalse(trustedReleaseUrl("https://github.com/untrusted-owner/Aroha-Music-App/releases/download/v1.25.0/Aroha-Music-1.25.0.apk", download = true))
+        assertFalse(trustedReleaseUrl("https://github.com/ArohaMusic/Aroha-Music/releases/tag/v1.25.0"))
         assertTrue(parseRelease(release())!!.apkUrl!!.endsWith("Aroha-Music-1.25.0.apk"))
         assertFalse(trustedReleaseUrl("https://github.com/another-owner/Aroha-Music/releases/tag/v1.25.0"))
         assertFalse(trustedReleaseUrl("https://github.com/ArohaMusic/Aroha-Music-App-untrusted/releases/tag/v1.25.0"))
