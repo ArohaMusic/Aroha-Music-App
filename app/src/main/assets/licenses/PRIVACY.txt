@@ -1,6 +1,6 @@
 # Aroha Music privacy
 
-This document describes Aroha Music version 1.0.0, Android application ID `com.arohamusic.app`. Update this document and the bundled copy when behavior changes.
+This document describes Aroha Music version 1.1.0, Android application ID `com.arohamusic.app`. Update this document and the bundled copy when behavior changes.
 
 ## On-device data
 

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.1.0
+
 - Follow the renamed ArohaMusic GitHub account for verified app updates, release monitoring, setup links and code ownership.
 - Add a personalized Home Speed Dial for playable pinned playlists, recent songs and favorites, with discovery results for new listeners.
 - Add New releases, Charts, Podcasts and Music videos browse tabs at the bottom of Home.
