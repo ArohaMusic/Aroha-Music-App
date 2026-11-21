@@ -1,11 +1,14 @@
 import json
+import io
+import os
 import tempfile
 import unittest
 import urllib.error
+import urllib.request
 from unittest.mock import patch
 from pathlib import Path
 
-from release_health import REPOSITORY, assets, apk_names, fetch_release
+from release_health import REPOSITORY, assets, apk_names, fetch_release, download
 from security_audit import check_actions, queries
 
 
@@ -31,6 +34,29 @@ class MonitoringTest(unittest.TestCase):
             with self.assertRaises(urllib.error.HTTPError):
                 fetch_release()
             self.assertEqual(1, request.call_count)
+
+    def test_ci_token_is_only_sent_to_initial_metadata_request(self):
+        requests = []
+        def respond(request, timeout):
+            requests.append(request)
+            return io.BytesIO(json.dumps(self.release()).encode() if request.full_url.startswith("https://api.github.com/") else b"apk")
+        with patch.dict(os.environ, {"GITHUB_TOKEN": "fixture-token"}, clear=True), \
+                patch("release_health.urllib.request.urlopen", side_effect=respond):
+            self.assertEqual("v1.25.0", fetch_release()["tag_name"])
+            with tempfile.TemporaryDirectory() as directory:
+                download(dict(browser_download_url=f"https://github.com/{REPOSITORY}/releases/download/v1.25.0/app.apk", size=3),
+                    Path(directory) / "app.apk")
+        self.assertEqual("Bearer fixture-token", requests[0].get_header("Authorization"))
+        self.assertIsNone(requests[1].get_header("Authorization"))
+        redirected = urllib.request.HTTPRedirectHandler().redirect_request(requests[0], None, 302, "Found", {},
+            "https://release-assets.githubusercontent.com/fixture")
+        self.assertIsNone(redirected.get_header("Authorization"))
+
+    def test_public_metadata_check_still_works_without_ci_token(self):
+        with patch.dict(os.environ, {}, clear=True), patch("release_health.urllib.request.urlopen",
+                return_value=io.BytesIO(json.dumps(self.release()).encode())) as request:
+            self.assertEqual("v1.25.0", fetch_release()["tag_name"])
+        self.assertIsNone(request.call_args.args[0].get_header("Authorization"))
 
     def test_missing_asset_and_untrusted_url_fail(self):
         release = self.release()

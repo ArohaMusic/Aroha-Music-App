@@ -29,6 +29,7 @@ jobs:
       - name: Verify published downloads, checksum and production signing identity
         env:
           EXPECTED_CERTIFICATE: ${{ vars.RELEASE_CERT_SHA256 }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           python3 scripts/release_health.py --tools "$ANDROID_HOME/build-tools/36.0.0" \
             --certificate "$EXPECTED_CERTIFICATE" --output release-health.json

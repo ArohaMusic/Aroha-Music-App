@@ -26,6 +26,11 @@ def apk_names(tag, available):
 def fetch_release():
     request = urllib.request.Request(f"https://api.github.com/repos/{REPOSITORY}/releases/latest",
         headers={"Accept": "application/vnd.github+json", "User-Agent": "Aroha-Release-Health"})
+    token = os.environ.get("GITHUB_TOKEN", "").strip()
+    if token:
+        # Authenticate only the fixed GitHub API request. Never forward the token
+        # through a redirect, or attach it to the public APK/source downloads.
+        request.add_unredirected_header("Authorization", f"Bearer {token}")
     try:
         with urllib.request.urlopen(request, timeout=30) as response:
             return json.loads(response.read(1_048_577))

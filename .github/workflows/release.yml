@@ -95,6 +95,7 @@ jobs:
       - name: Verify production identity and upgrade version
         env:
           EXPECTED_CERTIFICATE: ${{ vars.RELEASE_CERT_SHA256 }}
+          GITHUB_TOKEN: ${{ github.token }}
           ALLOW_FIRST_RELEASE: ${{ vars.ALLOW_FIRST_RELEASE }}
           RELEASE_VERSION: ${{ steps.metadata.outputs.version }}
           RELEASE_CODE: ${{ steps.metadata.outputs.version_code }}
