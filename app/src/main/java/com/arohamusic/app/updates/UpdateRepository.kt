@@ -56,7 +56,7 @@ internal class UpdateRepository(
         val serverBackoff = saved.manualAfter > clock() && saved.manualAfter == saved.nextAttempt && saved.manualAfter != saved.checked + 30_000
         mutableState.value = UpdateState(release = release, lastChecked = saved.checked, dismissedVersion = saved.dismissed, notifiedVersion = saved.notified,
             retryAt = if (serverBackoff) saved.manualAfter else 0,
-            error = if (serverBackoff) "GitHub temporarily limited update checks. Your last result is still available." else null)
+            error = if (serverBackoff) "GitHub temporarily limited update checks." else null)
         loaded = true
     }
     suspend fun load() = mutex.withLock { loadLocked() }
@@ -117,7 +117,7 @@ internal class UpdateRepository(
             saved = next
             mutableState.value = mutableState.value.copy(
                 retryAt = serverRetry?.let { next.manualAfter } ?: 0,
-                error = if (serverRetry != null) "GitHub temporarily limited update checks. Your last result is still available."
+                error = if (serverRetry != null) "GitHub temporarily limited update checks."
                     else "Couldn't check for updates. Check your connection and try again.")
         } finally {
             mutableState.value = mutableState.value.copy(checking = false)
