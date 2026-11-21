@@ -112,11 +112,12 @@ internal fun PlayerArtworkCarousel(track: Track, previous: Track?, next: Track?,
         val shape = RoundedCornerShape(if (apple) 8.dp else 20.dp)
         fun translation() = if (reduced) 0f else if (dragging || (settling && !animating)) distance else if (settling) offset.value else 0f
         Box(Modifier.fillMaxSize().then(gesture)) {
-            if (!reduced && (dragging || settling)) {
-                dragPrevious?.let { neighbor -> CoverImage(neighbor.artwork, null, Modifier.fillMaxSize().graphicsLayer {
+            // Keep adjacent covers loaded just outside the clipped viewport before a swipe starts.
+            if (!reduced) {
+                (if (dragging || settling) dragPrevious else previous)?.let { neighbor -> CoverImage(neighbor.artwork, null, Modifier.fillMaxSize().graphicsLayer {
                     translationX = translation() - width - gap; this.shape = shape; clip = true
                 }, highQuality = true, rounded = false, animate = false) }
-                dragNext?.let { neighbor -> CoverImage(neighbor.artwork, null, Modifier.fillMaxSize().graphicsLayer {
+                (if (dragging || settling) dragNext else next)?.let { neighbor -> CoverImage(neighbor.artwork, null, Modifier.fillMaxSize().graphicsLayer {
                     translationX = translation() + width + gap; this.shape = shape; clip = true
                 }, highQuality = true, rounded = false, animate = false) }
             }
