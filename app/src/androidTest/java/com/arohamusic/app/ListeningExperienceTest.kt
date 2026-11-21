@@ -14,6 +14,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -40,6 +41,7 @@ import java.io.File
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.concurrent.atomic.AtomicReference
+import java.util.concurrent.atomic.AtomicInteger
 
 @UnstableApi
 @RunWith(AndroidJUnit4::class)
@@ -129,7 +131,111 @@ class ListeningExperienceTest {
         }
     }
 
-    @Test fun minimalModeAndLyricsSettingsPreservePlaybackAndReachAllControls(): Unit = runBlocking {
+    @Test fun homeHeaderAndExploreCardsStayCompactAndBrowseListsScroll(): Unit = runBlocking {
+        fixture { scenario, _, tracks ->
+            val selected = AtomicReference<HomeDestination>()
+            val opened = AtomicReference<String>()
+            scenario.onActivity { activity -> activity.setContent {
+                ArohaTheme(ThemePreferences(mode = ThemeMode.DARK, reduceMotion = true)) {
+                    Surface(Modifier.fillMaxSize().semantics { testTagsAsResourceId = true }) {
+                        Column(Modifier.statusBarsPadding()) {
+                            HomeBrandHeader(HomeGreeting("Good evening, Alexandra", "Wind down with a favorite."), {}, {})
+                            Spacer(Modifier.height(24.dp))
+                            HomeExploreCards(selected::set)
+                        }
+                    }
+                }
+            } }
+            assertTrue(device.wait(Until.hasObject(By.res("home-greeting")), 4_000))
+            val brand = device.findObject(By.res("home-brand")).visibleBounds
+            val greeting = device.findObject(By.res("home-greeting")).visibleBounds
+            assertTrue("Greeting is immediately under the logo row", greeting.top >= brand.bottom && greeting.top - brand.bottom < 12)
+            assertTrue("Greeting uses one compact line", greeting.height() < 25 * app.resources.displayMetrics.density)
+            capture("home-explore")
+            click(By.text("Charts")); assertEquals(HomeDestination.CHARTS, selected.get())
+            for (destination in listOf(HomeDestination.CHARTS, HomeDestination.PODCASTS, HomeDestination.VIDEOS)) {
+                val collections = (0..11).map { BrowseCollection("browse-$it", "${destination.label} collection $it", "Creator $it",
+                    tracks.first().artwork, "https://music.youtube.com/playlist?list=fixture-$it", 25, CollectionKind.PLAYLIST) }
+                val page = BrowsePageState(destination.label, "", false, destination = destination,
+                    playlists = ContentState(items = collections), videos = ContentState(items = tracks.take(12)))
+                scenario.onActivity { activity -> activity.setContent {
+                    ArohaTheme(ThemePreferences(mode = ThemeMode.DARK, reduceMotion = true)) {
+                        Surface(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().semantics { testTagsAsResourceId = true }) {
+                            HomeDestinationContent(page, {}, { opened.set(it.id) }, { opened.set(it.id) }, {}, {}, {}, {})
+                        }
+                    }
+                } }
+                assertTrue(device.wait(Until.hasObject(By.res("home-destination-list")), 4_000))
+                val firstTitle = if (destination == HomeDestination.VIDEOS) tracks.first().title else collections.first().title
+                assertTrue(device.wait(Until.hasObject(By.text(firstTitle)), 4_000))
+                if (android.os.Build.VERSION.SDK_INT >= 33) instrumentation.uiAutomation.clearCache()
+                val lastTitle = if (destination == HomeDestination.VIDEOS) tracks[11].title else collections.last().title
+                assertFalse("Last item begins below the viewport", device.hasObject(By.text(lastTitle)))
+                capture("browse-${destination.name.lowercase()}")
+                if (destination == HomeDestination.VIDEOS) {
+                    click(By.res("browse-video:${tracks.first().id}"))
+                    assertEquals("Video preview invokes explicit playback", tracks.first().id, opened.get())
+                    opened.set(null)
+                }
+                repeat(18) {
+                    if (!device.hasObject(By.text(lastTitle))) {
+                        device.findObject(By.res("home-destination-list")).scroll(Direction.DOWN, .8f)
+                        delay(100)
+                    }
+                }
+                assertTrue("All ${destination.label} items are reachable", device.hasObject(By.text(lastTitle)))
+                device.findObject(By.res("home-destination-list")).scroll(Direction.DOWN, .35f)
+                if (destination != HomeDestination.VIDEOS) {
+                    assertTrue(device.hasObject(By.text("Creator 11")))
+                    assertTrue(device.hasObject(By.text(if (destination == HomeDestination.CHARTS) "25 tracks" else "25 items")))
+                    click(By.text(lastTitle)); assertEquals(collections.last().id, opened.get())
+                }
+                opened.set(null)
+            }
+        }
+    }
+
+    @Test fun artworkSwipesRespectBoundariesAndKeepTheConfirmedCoverCentered(): Unit = runBlocking {
+        fixture { scenario, _, tracks ->
+            val current = mutableIntStateOf(0)
+            val calls = AtomicInteger()
+            scenario.onActivity { activity -> activity.setContent {
+                ArohaTheme(ThemePreferences(mode = ThemeMode.DARK, motion = MotionLevel.FULL)) {
+                    Surface(Modifier.fillMaxSize()) {
+                        Box(Modifier.statusBarsPadding().padding(24.dp).size(320.dp)) {
+                            PlayerArtworkCarousel(tracks[current.intValue], tracks.getOrNull(current.intValue - 1),
+                                tracks.getOrNull(current.intValue + 1), false,
+                                { calls.incrementAndGet(); current.intValue-- },
+                                { calls.incrementAndGet(); android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({ current.intValue++ }, 120) })
+                        }
+                    }
+                }
+            } }
+            assertTrue(device.wait(Until.hasObject(By.desc(tracks[0].title)), 4_000))
+            delay(400)
+            val bounds = device.findObject(By.desc(tracks[0].title)).visibleBounds
+            fun swipe(forward: Boolean) {
+                val left = bounds.left + bounds.width() / 6
+                val right = bounds.right - bounds.width() / 6
+                device.swipe(if (forward) right else left, bounds.centerY(), if (forward) left else right, bounds.centerY(), 30)
+            }
+            swipe(false); delay(700)
+            assertEquals("Previous at the first song does nothing", 0, calls.get())
+            swipe(true)
+            assertTrue(device.wait(Until.hasObject(By.desc(tracks[1].title)), 4_000))
+            delay(600)
+            assertEquals("One swipe invokes next exactly once", 1, calls.get())
+            assertEquals("Confirmed cover stays centered after handoff", bounds, device.findObject(By.desc(tracks[1].title)).visibleBounds)
+            capture("artwork-handoff")
+            swipe(false)
+            assertTrue(device.wait(Until.hasObject(By.desc(tracks[0].title)), 4_000))
+            delay(600)
+            assertEquals(2, calls.get())
+            assertEquals(bounds, device.findObject(By.desc(tracks[0].title)).visibleBounds)
+        }
+    }
+
+    @Test fun lyricsSettingsPreservePlaybackAndReachAllControls(): Unit = runBlocking {
         fixture { scenario, vm, tracks ->
             scenario.onActivity { activity ->
                 vm.player.play(tracks.first(), tracks.take(2), ordered = true)
@@ -145,19 +251,8 @@ class ListeningExperienceTest {
             }
             eventually("Audio starts") { vm.playback.value.playing }
             val queue = vm.playback.value.queueIds
-            click(By.desc("Minimal listening"))
-            assertTrue(device.wait(Until.hasObject(By.res("minimal-listening")), 4_000))
-            assertFalse(device.hasObject(By.desc("Show lyrics")))
-            assertEquals(queue, vm.playback.value.queueIds)
+            assertFalse("Minimal listening entry is removed", device.hasObject(By.desc("Minimal listening")))
             assertTrue(vm.playback.value.playWhenReady)
-            capture("minimal")
-            click(By.desc("Pause")); eventually("Minimal pause works") { !vm.playback.value.playWhenReady }
-            click(By.text("Exit minimal"))
-            assertTrue(device.wait(Until.hasObject(By.desc("Show lyrics")), 4_000))
-            assertFalse("Leaving minimal must preserve pause", vm.playback.value.playWhenReady)
-            click(By.desc("Minimal listening")); device.pressBack()
-            assertTrue(device.wait(Until.hasObject(By.desc("Show lyrics")), 4_000))
-            click(By.desc("Play")); eventually("Playback resumes") { vm.playback.value.playing }
             click(By.desc("Show lyrics")); click(By.desc("Lyrics appearance and timing"))
             assertTrue(device.wait(Until.hasObject(By.text("Make lyrics yours")), 4_000))
             assertTrue(device.hasObject(By.text("Done")))

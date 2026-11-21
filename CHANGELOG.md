@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 1.3.0
+
+- Remove the optional minimal listening screen and its player entry point.
+- Replace the artwork swipe's reset and second transition with a continuous slide into the next or previous cover. Preload adjacent covers, keep the confirmed song centered, resist queue boundaries and respect reduced motion.
+- Replace Home's bottom browse chips with larger two-column Explore more cards.
+- Give Charts and Podcasts full-height, vertically scrolling collection cards with creator and item counts; give Music videos wide previews with artist details and duration.
+- Move the Home greeting directly under the logo in a small, single line and shorten its daily messages.
+
 ## 1.2.0
 
 - Add an optional minimal listening view with artwork, song details, seeking and essential playback controls. Enter from the player header and return with Exit minimal or Android Back, preserving the queue and play/pause state.

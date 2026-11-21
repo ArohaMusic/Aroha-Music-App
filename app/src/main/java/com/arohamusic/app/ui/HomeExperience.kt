@@ -68,13 +68,7 @@ fun DiscoveryScreen(vm: MusicViewModel, mood: String, onMood: (String) -> Unit, 
         LazyColumn(state = list, modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(top = 8.dp, bottom = 28.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)) {
             item(key = "header", contentType = "header") {
-                Row(Modifier.fillMaxWidth().padding(horizontal = 22.dp), verticalAlignment = Alignment.CenterVertically) {
-                    AnimatedBrandMark(Modifier.size(30.dp))
-                    Text(androidx.compose.ui.res.stringResource(com.arohamusic.app.R.string.app_name), style = ArohaType.Brand, modifier = Modifier.padding(start = 8.dp))
-                    Spacer(Modifier.weight(1f))
-                    Glyph(Icons.Outlined.Search, "Search", onClick = { onSearch("") })
-                    Glyph(Icons.Outlined.Tune, "Settings", onClick = onSettings)
-                }
+                HomeBrandHeader(greeting, onSearch = { onSearch("") }, onSettings = onSettings)
             }
             item(key = "mood-chips", contentType = "chips") {
                 LazyRow(contentPadding = PaddingValues(horizontal = 22.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -87,12 +81,6 @@ fun DiscoveryScreen(vm: MusicViewModel, mood: String, onMood: (String) -> Unit, 
                         MusicCategoryChip("Add", false, onClick = { addMood = true },
                             leadingIcon = { MusicIcon(Icons.Outlined.Add, null, modifier = Modifier.size(16.dp)) })
                     }
-                }
-            }
-            item(key = "greeting", contentType = "header") {
-                Column(Modifier.padding(horizontal = 22.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(greeting.title, style = MaterialTheme.typography.headlineSmall)
-                    Text(greeting.message, style = ArohaType.Metadata, color = Muted)
                 }
             }
             if (speedDial.isNotEmpty() || picks.loading) item(key = "speed-dial", contentType = "speed-dial") {
@@ -143,7 +131,7 @@ fun DiscoveryScreen(vm: MusicViewModel, mood: String, onMood: (String) -> Unit, 
             item(key = "discovery-tabs", contentType = "discovery-tabs") {
                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     HomeHeading("Explore more", "New sounds, charts and conversations")
-                    HomeDiscoveryTabs(onSelect = vm::openHomeDestination)
+                    HomeExploreCards(onSelect = vm::openHomeDestination)
                 }
             }
         }

@@ -73,7 +73,6 @@ private fun NowPlayingContent(vm: MusicViewModel, track: Track, onQueue: () -> U
     val lyricScroll = rememberSaveable(track.id, saver = ScrollState.Saver) { ScrollState(0) }
     var fullScreenLyrics by rememberSaveable { mutableStateOf(false) }
     var fullScreenVideo by rememberSaveable { mutableStateOf(false) }
-    var minimalListening by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(state.trackId, state.hasVideo, state.buffering, state.error) {
         if (!state.hasVideo && !state.buffering && state.error == null) fullScreenVideo = false
     }
@@ -82,7 +81,6 @@ private fun NowPlayingContent(vm: MusicViewModel, track: Track, onQueue: () -> U
     androidx.activity.compose.BackHandler(lyricsOpen || queueOpen) {
         if (fullScreenLyrics) fullScreenLyrics = false else { lyricsOpen = false; queueOpen = false }
     }
-    androidx.activity.compose.BackHandler(minimalListening) { minimalListening = false }
     val upcoming = remember(state.queueIds, state.upcomingIndices, metadata) {
         state.upcomingIndices.mapNotNull { index -> state.queueIds.getOrNull(index)?.let(metadata::get)?.let { index to it } }
     }
@@ -101,10 +99,6 @@ private fun NowPlayingContent(vm: MusicViewModel, track: Track, onQueue: () -> U
     }
     BoxWithConstraints(Modifier.fillMaxSize()) {
         AmbientPlayerBackdrop(track.artwork, Modifier.matchParentSize())
-        if (minimalListening) {
-            MinimalListeningScreen(vm, track, state) { minimalListening = false }
-            return@BoxWithConstraints
-        }
         val viewportHeight = maxHeight
         val compactViewport = maxHeight / androidx.compose.ui.platform.LocalDensity.current.fontScale.coerceAtLeast(1f) < 520.dp
         LaunchedEffect(apple) { if (apple) list.scrollToItem(0) }
@@ -132,10 +126,6 @@ private fun NowPlayingContent(vm: MusicViewModel, track: Track, onQueue: () -> U
                             Text("NOW PLAYING", Modifier.weight(1f), style = ArohaType.Eyebrow,
                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                             if (!apple) AudioOutputButton()
-                            Glyph(Icons.Rounded.CropFree, "Minimal listening", ContentColor) {
-                                lyricsOpen = false; queueOpen = false; fullScreenLyrics = false; fullScreenVideo = false
-                                minimalListening = true
-                            }
                             Glyph(if (apple) Icons.Rounded.MoreHoriz else PlayerIcons.More, "Song options", ContentColor) { onMore(track) }
                         }
                     }, artwork = { area ->

@@ -1,5 +1,13 @@
 # Aroha Music validation
 
+## 1.3.0 player and Home polish — 22 November 2026
+
+- SDK-free debug, optimized unsigned release and instrumentation builds pass, together with 375 JVM tests, 48 release/publication Python tests and debug lint (0 errors; 55 existing warnings).
+- Disposable-emulator checks cover the removed minimal-mode entry, lyrics settings without pausing audio, horizontal Speed Dial selection, the reachable Done action at 160% text size, the compact greeting under the logo, and vertical scrolling through all fixture Charts, Podcasts and Videos results. Collection metadata and explicit video playback actions are checked.
+- Artwork checks cover forward/backward handoffs, one callback per swipe, the first-song boundary and the confirmed cover returning to its centered bounds. The integrated player test also exercises queue gestures and reduced-motion navigation.
+- The public-source allowlist contains 452 files. Generated media, UI screenshots, logs, signing inputs and build outputs are excluded. No dependencies, permissions, storage schema or reporting defaults changed.
+- UI verification uses generated local media and deterministic browse/lyrics fixtures. It does not establish physical-phone behavior or live-provider availability. Verify production signing, version and upgrade installation against the workflow APK before publishing.
+
 ## 1.2.0 listening experience — 21 November 2026
 
 - SDK-free debug and optimized unsigned release builds pass, together with 375 JVM tests, 46 release/publication Python tests and debug lint (0 errors; 55 warnings outside the changed UI files).
