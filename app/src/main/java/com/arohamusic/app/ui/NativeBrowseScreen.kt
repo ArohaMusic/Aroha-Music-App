@@ -11,7 +11,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
 import androidx.media3.common.util.UnstableApi
@@ -20,6 +19,10 @@ import com.arohamusic.app.domain.Track
 @UnstableApi
 @Composable
 fun NativeBrowseScreen(vm: MusicViewModel, page: BrowsePageState, onMore: (Track) -> Unit, onClose: () -> Unit) {
+    if (page.destination != null) {
+        androidx.compose.runtime.key(page.destination) { HomeDestinationScreen(vm, page, onMore, onClose) }
+        return
+    }
     val retry = vm::retryBrowse
     val artists = remember(page.songs.items, page.trending.items) {
         (page.songs.items + page.trending.items).flatMap { com.arohamusic.app.data.youtube.ArtistNames.fallback(it.artist) }
@@ -34,7 +37,7 @@ fun NativeBrowseScreen(vm: MusicViewModel, page: BrowsePageState, onMore: (Track
                     Glyph(Icons.AutoMirrored.Rounded.ArrowBack, "Back to Home", onClick = onClose)
                     Column(Modifier.weight(1f).padding(start = 8.dp)) {
                         Text(if (page.mood) "MUSIC FOR YOUR MOMENT" else "EXPLORE A SOUND", color = Lavender, style = MaterialTheme.typography.labelSmall)
-                        Text(page.title, style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
+                        Text(page.title, style = ArohaType.HeroTitle)
                     }
                     Glyph(Icons.Rounded.Refresh, "Refresh ${page.title}", onClick = retry)
                 }
@@ -48,6 +51,11 @@ fun NativeBrowseScreen(vm: MusicViewModel, page: BrowsePageState, onMore: (Track
                 HomeHeading("Curated playlists", "Stay in the moment")
                 Spacer(Modifier.height(14.dp))
                 HomeCollectionShelf(page.playlists, vm::openCollection, retry)
+            }
+            item(key = "music-videos") {
+                HomeHeading("Music videos", "Watch this sound")
+                Spacer(Modifier.height(14.dp))
+                MusicVideoShelf(page.videos, retry, { vm.play(it, watchVideo = true) }, onMore)
             }
             item(key = "albums") {
                 HomeHeading("Recommended albums", "Explore the whole record")
@@ -63,7 +71,7 @@ fun NativeBrowseScreen(vm: MusicViewModel, page: BrowsePageState, onMore: (Track
                     items(artists, key = { it }, contentType = { "artist" }) { name ->
                         Column(Modifier.width(112.dp).motionClickable { vm.openArtist(name) }, horizontalAlignment = Alignment.CenterHorizontally) {
                             ArtistPortrait(vm, name, Modifier.size(104.dp).clip(CircleShape))
-                            Text(name, maxLines = 2, overflow = TextOverflow.Ellipsis, fontSize = 13.sp, modifier = Modifier.padding(top = 10.dp))
+                            Text(name, maxLines = 2, overflow = TextOverflow.Ellipsis, style = ArohaType.Metadata, modifier = Modifier.padding(top = 10.dp))
                         }
                     }
                 }

@@ -33,7 +33,7 @@ internal class GitHubReleaseFetcher(
                     val root = JSONObject(json)
                     val tag = root.getString("tag_name")
                     val assets = root.optJSONArray("assets")
-                    val expected = "https://github.com/lxexe/Aroha-Music-App/releases/download/$tag/release-identity.json"
+                    val expected = "https://github.com/ArohaMusic/Aroha-Music-App/releases/download/$tag/release-identity.json"
                     val found = (0 until (assets?.length() ?: 0)).any { index ->
                         val asset = assets!!.optJSONObject(index)
                         asset?.optString("name") == "release-identity.json" && asset.optString("state") == "uploaded" &&

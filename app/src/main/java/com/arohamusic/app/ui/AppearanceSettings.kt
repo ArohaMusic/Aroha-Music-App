@@ -30,7 +30,7 @@ fun AppearanceSettings(vm: MusicViewModel) {
     val experience by vm.experience.collectAsStateWithLifecycle(ExperiencePreferences())
     val list = rememberLazyListState()
     LazyColumn(Modifier.fillMaxSize().navigationBarsPadding(), state = list,
-        contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
+        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 72.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
         item {
             SettingsGroup("Theme") {
                 SettingsChoice("App theme", theme.mode.takeIf { it in listOf(ThemeMode.SYSTEM, ThemeMode.LIGHT, ThemeMode.AMOLED) } ?: ThemeMode.AMOLED,
@@ -42,14 +42,14 @@ fun AppearanceSettings(vm: MusicViewModel) {
                 SettingsChoice("Playing style", theme.playerStyle.takeIf { it == PlayerStyle.YOUTUBE } ?: PlayerStyle.APPLE,
                     listOf(PlayerStyle.APPLE, PlayerStyle.YOUTUBE), { it.label }) { style -> vm.updateTheme { it.copy(playerStyle = style) } }
                 Text("The player follows the artwork colors with a bright, softly moving background.", color = Muted,
-                    style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(16.dp))
+                    style = ArohaType.Metadata, modifier = Modifier.padding(16.dp))
             }
         }
         item {
             SettingsGroup("Lyrics appearance") {
                 SettingsChoice("Lyric style", theme.lyricStyle, LyricStyle.entries, { it.label }) { style -> vm.updateTheme { it.copy(lyricStyle = style) } }
                 LyricStylePreview(theme.lyricStyle, theme.reduceMotion)
-                Text(theme.lyricStyle.description, color = Muted, style = MaterialTheme.typography.bodySmall,
+                Text(theme.lyricStyle.description, color = Muted, style = ArohaType.Metadata,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp))
             }
         }
@@ -65,7 +65,7 @@ fun AppearanceSettings(vm: MusicViewModel) {
                     vm.updateExperience { it.copy(lyricBehavior = behavior) }
                 }
                 Text("Automatic remembers sources with real word timing for each recording. Six providers can supply lyrics; available lines stay visible while other sources are checked.",
-                    color = Muted, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(16.dp))
+                    color = Muted, style = ArohaType.Metadata, modifier = Modifier.padding(16.dp))
             }
         }
         item {

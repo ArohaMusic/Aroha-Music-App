@@ -15,7 +15,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
@@ -51,7 +50,7 @@ internal fun LyricStylePreview(style: LyricStyle, reduceMotion: Boolean) {
     Column(Modifier.padding(horizontal = 12.dp, vertical = 4.dp).fillMaxWidth().clip(RoundedCornerShape(18.dp))
         .background(Brush.linearGradient(listOf(Color(0xFF292A30), Color(0xFF14151A)))).padding(horizontal = 20.dp, vertical = 12.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text("PREVIEW", Modifier.weight(1f), color = Color.White.copy(alpha = .55f), fontSize = 10.sp, letterSpacing = 1.sp)
+            Text("PREVIEW", Modifier.weight(1f), color = Color.White.copy(alpha = .55f), style = ArohaType.Eyebrow)
             MotionIconButton(onClick = { playing = !playing }, enabled = !reduceMotion, modifier = Modifier.size(32.dp)) {
                 Icon(if (playing && !reduceMotion) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                     if (playing && !reduceMotion) "Pause lyrics preview" else "Play lyrics preview", tint = Color.White, modifier = Modifier.size(18.dp))

@@ -12,7 +12,7 @@ from pathlib import Path
 
 from release_safety import fingerprint, inspect_apk, sha256, validate
 
-REPOSITORY = "lxexe/Aroha-Music-App"
+REPOSITORY = "ArohaMusic/Aroha-Music-App"
 
 
 def apk_names(tag, available):

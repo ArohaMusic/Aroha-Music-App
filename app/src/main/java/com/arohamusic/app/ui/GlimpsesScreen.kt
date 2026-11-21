@@ -90,7 +90,9 @@ private fun GlimpsesContent(vm: MusicViewModel, collection: GlimpseCollection? =
     val feedbackDuration = motionDuration(160)
     val panelDuration = motionDuration(MotionTokens.Spatial)
     val motion = motionProfile()
-    val canPlay = foreground && !paused && panel == null && track?.id !in hiddenIds
+    // Menus are overlays, not a playback interruption. Only an explicit pause,
+    // leaving the foreground, or hiding the current clip should stop the preview.
+    val canPlay = foreground && !paused && track?.id !in hiddenIds
     DisposableEffect(players) {
         vm.openGlimpsesView(); vm.player.pause()
         onDispose { players.forEach { it.player.release() }; vm.closeGlimpsesView(); if (collection == null) vm.pauseGlimpsesLoading() }
@@ -250,7 +252,7 @@ private fun GlimpsesContent(vm: MusicViewModel, collection: GlimpseCollection? =
                 }
                 if (selected && showBuffering) CircularProgressIndicator(Modifier.size(26.dp).align(Alignment.Center), color = Color.White, strokeWidth = 2.dp)
                 if (selected && renderer?.error != null) Column(Modifier.align(Alignment.Center).background(Color.Black.copy(alpha = .6f), RoundedCornerShape(16.dp)).padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(renderer.error!!, color = Color.White, fontSize = 13.sp)
+                    Text(renderer.error!!, color = Color.White, style = ArohaType.Metadata)
                     MotionTextButton(onClick = { sources.invalidate(item.id); retry++ }) { Text("Retry", color = Color.White) }
                 }
                 Column(Modifier.align(Alignment.BottomEnd).padding(end = 10.dp, bottom = 112.dp), verticalArrangement = Arrangement.spacedBy(6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -270,8 +272,8 @@ private fun GlimpsesContent(vm: MusicViewModel, collection: GlimpseCollection? =
                     AsyncImage(item.artwork, "View album", contentScale = ContentScale.Crop,
                         modifier = Modifier.size(40.dp).playerArtwork(item.id).clip(RoundedCornerShape(8.dp)).clickable { album(item) })
                     Column(Modifier.weight(1f)) {
-                        Text(item.title, modifier = Modifier.playerTitle(item.id), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp, lineHeight = 23.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                        Text(item.artist, color = Color.White.copy(alpha = .8f), fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        Text(item.title, modifier = Modifier.playerTitle(item.id), color = Color.White, style = ArohaType.GlimpseTitle, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        Text(item.artist, color = Color.White.copy(alpha = .8f), style = ArohaType.Metadata, maxLines = 1, overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.clickable { stop(); vm.closeGlimpseCollection(); vm.openArtist(vm.cachedArtists(item).firstOrNull() ?: item.artist, item) })
                     }
                     GlimpseIcon(Icons.Rounded.PlayArrow, "Play full song", background = true) { full(false) }
@@ -282,7 +284,7 @@ private fun GlimpsesContent(vm: MusicViewModel, collection: GlimpseCollection? =
         Row(Modifier.align(Alignment.TopCenter).fillMaxWidth().statusBarsPadding().padding(horizontal = 10.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             if (onClose != null) GlimpseIcon(Icons.AutoMirrored.Rounded.ArrowBack, "Close Glimpses", onClick = { stop(); onClose() })
             Text(collection?.title ?: "Glimpses", Modifier.weight(1f).padding(start = if (onClose == null) 8.dp else 2.dp),
-                color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                color = Color.White, style = ArohaType.ActionTitle, maxLines = 1, overflow = TextOverflow.Ellipsis)
             GlimpseIcon(if (muted) Icons.AutoMirrored.Rounded.VolumeOff else Icons.AutoMirrored.Rounded.VolumeUp, if (muted) "Unmute previews" else "Mute previews") { muted = !muted }
             GlimpseIcon(Icons.Rounded.Tune, "Video quality") { panel = GlimpsePanel.QUALITY }
         }
@@ -294,57 +296,82 @@ private fun GlimpsesContent(vm: MusicViewModel, collection: GlimpseCollection? =
         AnimatedContent(panel, transitionSpec = {
             motionTransform(motion)
         }, label = "Glimpses panel") { shown ->
-            Column(Modifier.fillMaxWidth().heightIn(max = 600.dp).imePadding().verticalScroll(rememberScrollState()).navigationBarsPadding().padding(horizontal = 20.dp, vertical = 8.dp)) {
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.fillMaxWidth().heightIn(max = 600.dp).imePadding().navigationBarsPadding().padding(horizontal = 20.dp, vertical = 8.dp)) {
+                if (shown == GlimpsePanel.MORE) (actionTrack ?: track)?.let { item ->
+                    SongActionsHeader(item, closeLabel = "Close panel", onClose = { dismiss {} })
+                } else Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     if (shown == GlimpsePanel.CREATE) GlimpseIcon(Icons.AutoMirrored.Rounded.ArrowBack, "Back to playlists") { panel = GlimpsePanel.SAVE }
-                    Text(when (shown) { GlimpsePanel.QUALITY -> "Video quality"; GlimpsePanel.SAVE -> "Save to playlist"; GlimpsePanel.CREATE -> "New playlist"; GlimpsePanel.MESSAGE -> "Glimpses"; else -> track?.title.orEmpty() },
-                        Modifier.weight(1f), color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 18.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    Text(when (shown) { GlimpsePanel.QUALITY -> "Video quality"; GlimpsePanel.SAVE -> "Save to playlist"; GlimpsePanel.CREATE -> "New playlist"; else -> "Glimpses" },
+                        Modifier.weight(1f), color = Color.White, style = ArohaType.SectionTitle)
                     GlimpseIcon(Icons.Rounded.Close, "Close panel") { dismiss {} }
                 }
-                when (shown) {
-                    GlimpsePanel.QUALITY -> {
-                        if (preview.actualHeight > 0) Text("Playing ${preview.actualHeight}p", color = Color.White.copy(alpha = .6f), fontSize = 13.sp, modifier = Modifier.padding(vertical = 8.dp))
-                        GlimpseQuality.entries.filter { it == GlimpseQuality.AUTO || it == GlimpseQuality.HIGHEST ||
-                            it == quality || it.maxHeight in preview.availableHeights }.forEach { choice ->
-                            Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).selectable(selected = quality == choice, role = Role.RadioButton) {
-                                vm.updatePreferences { it.copy(glimpseQuality = choice) }; dismiss {}
-                            }.padding(vertical = 14.dp, horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Text(choice.label, Modifier.weight(1f), color = Color.White)
-                                if (quality == choice) Icon(Icons.Rounded.Check, null, tint = GlimpseAccent)
+                Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())) {
+                    when (shown) {
+                        GlimpsePanel.QUALITY -> {
+                            if (preview.actualHeight > 0) Text("Playing ${preview.actualHeight}p", color = Color.White.copy(alpha = .6f), style = ArohaType.Metadata, modifier = Modifier.padding(vertical = 8.dp))
+                            Text("Auto follows your connection. Higher quality uses more data.", color = Muted,
+                                style = ArohaType.Caption, modifier = Modifier.padding(bottom = 4.dp))
+                            ActionMenuGroup {
+                                GlimpseQuality.entries.filter { it == GlimpseQuality.AUTO || it == GlimpseQuality.HIGHEST ||
+                                    it == quality || it.maxHeight in preview.availableHeights }.forEach { choice ->
+                                    val selected = quality == choice
+                                    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp))
+                                        .background(if (selected) GlimpseAccent.copy(alpha = .12f) else Color.Transparent)
+                                        .selectable(selected = selected, role = Role.RadioButton) {
+                                            if (quality != choice) vm.updatePreferences { it.copy(glimpseQuality = choice) }
+                                            dismiss {}
+                                        }.padding(vertical = 16.dp, horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(if (choice == GlimpseQuality.AUTO) Icons.Rounded.AutoAwesome else Icons.Rounded.HighQuality,
+                                            null, Modifier.size(22.dp), tint = if (selected) GlimpseAccent else Muted)
+                                        Text(choice.label, Modifier.weight(1f).padding(start = 14.dp), fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal)
+                                        if (selected) Icon(Icons.Rounded.CheckCircle, null, tint = GlimpseAccent)
+                                    }
+                                }
                             }
                         }
-                    }
-                    GlimpsePanel.SAVE -> {
-                        GlimpseOption(Icons.Rounded.Add, "New playlist") { playlistName = ""; panel = GlimpsePanel.CREATE }
-                        library.playlists.forEach { playlist -> GlimpseOption(Icons.AutoMirrored.Rounded.PlaylistPlay, playlist.name) {
-                            actionTrack?.let { vm.addToPlaylist(playlist.id, it) }; dismiss {}
-                        } }
-                    }
-                    GlimpsePanel.CREATE -> {
-                        OutlinedTextField(playlistName, { playlistName = it.take(80) }, label = { Text("Playlist name") }, singleLine = true,
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp), colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedBorderColor = GlimpseAccent, focusedLabelColor = GlimpseAccent))
-                        MotionTextButton(onClick = { actionTrack?.let { vm.createPlaylist(playlistName, it) }; dismiss {} }, enabled = playlistName.isNotBlank(), modifier = Modifier.align(Alignment.End)) { Text("Create & save", color = if (playlistName.isNotBlank()) GlimpseAccent else Color.Gray) }
-                    }
-                    GlimpsePanel.MORE -> track?.let { item ->
-                        GlimpseOption(Icons.Rounded.PlayArrow, "Play full song") { dismiss { full(false) } }
-                        if (item.source == Source.YOUTUBE) GlimpseOption(Icons.Rounded.Videocam, "Watch full video") { dismiss { full(true) } }
-                        GlimpseOption(Icons.Rounded.Tune, "Video quality") { panel = GlimpsePanel.QUALITY }
-                        GlimpseOption(Icons.Rounded.Radio, "Start radio") { dismiss { stop(); vm.startRadio(item); vm.closeGlimpseCollection(); onFullPlayer() } }
-                        GlimpseOption(Icons.AutoMirrored.Rounded.PlaylistPlay, "Play next") { vm.enqueue(item, next = true); dismiss {} }
-                        GlimpseOption(Icons.AutoMirrored.Rounded.QueueMusic, "Add to queue") { vm.enqueue(item); dismiss {} }
-                        GlimpseOption(Icons.Rounded.PersonOutline, "View artist") { dismiss { stop(); vm.closeGlimpseCollection(); vm.openArtist(vm.cachedArtists(item).firstOrNull() ?: item.artist, item) } }
-                        GlimpseOption(Icons.Rounded.Album, "View album") { dismiss { album(item) } }
-                        if (item.source == Source.YOUTUBE) {
-                            GlimpseOption(Icons.Rounded.ChatBubbleOutline, "Comments on YouTube") { dismiss { external("https://www.youtube.com/watch?v=${item.id}") } }
-                            GlimpseOption(Icons.Rounded.SmartDisplay, "Use sound in Shorts") { dismiss { external("https://www.youtube.com/source/${item.id}/shorts") } }
+                        GlimpsePanel.SAVE -> {
+                            GlimpseOption(Icons.Rounded.Add, "New playlist") { playlistName = ""; panel = GlimpsePanel.CREATE }
+                            library.playlists.forEach { playlist -> GlimpseOption(Icons.AutoMirrored.Rounded.PlaylistPlay, playlist.name) {
+                                actionTrack?.let { vm.addToPlaylist(playlist.id, it) }; dismiss {}
+                            } }
                         }
-                        GlimpseOption(Icons.Rounded.ThumbDownOffAlt, "Not interested") { dismiss { vm.lessLike(item); hiddenIds = hiddenIds + item.id; nextPage() } }
-                        if (collection == null) GlimpseOption(Icons.Rounded.Refresh, "Refresh videos") { dismiss { stop(); vm.loadGlimpses(refresh = true); scope.launch { pager.scrollToPage(0) } } }
+                        GlimpsePanel.CREATE -> {
+                            OutlinedTextField(playlistName, { playlistName = it.take(80) }, label = { Text("Playlist name") }, singleLine = true,
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp), colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedBorderColor = GlimpseAccent, focusedLabelColor = GlimpseAccent))
+                            MotionTextButton(onClick = { actionTrack?.let { vm.createPlaylist(playlistName, it) }; dismiss {} }, enabled = playlistName.isNotBlank(), modifier = Modifier.align(Alignment.End)) { Text("Create & save", color = if (playlistName.isNotBlank()) GlimpseAccent else Color.Gray) }
+                        }
+                        GlimpsePanel.MORE -> (actionTrack ?: track)?.let { item ->
+                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                ActionMenuShortcut(Icons.Rounded.PlayArrow, "Play full song") { dismiss { full(false) } }
+                                ActionMenuShortcut(Icons.AutoMirrored.Rounded.PlaylistPlay, "Play next") { vm.enqueue(item, next = true); dismiss {} }
+                                ActionMenuShortcut(Icons.AutoMirrored.Rounded.PlaylistAdd, "Save to playlist") { actionTrack = item; panel = GlimpsePanel.SAVE }
+                            }
+                            ActionMenuGroup("Playback") {
+                                if (item.source == Source.YOUTUBE) GlimpseOption(Icons.Rounded.Videocam, "Watch full video") { dismiss { full(true) } }
+                                GlimpseOption(Icons.Rounded.Tune, "Video quality") { panel = GlimpsePanel.QUALITY }
+                                GlimpseOption(Icons.Rounded.Radio, "Start radio") { dismiss { stop(); vm.startRadio(item); vm.closeGlimpseCollection(); onFullPlayer() } }
+                                GlimpseOption(Icons.AutoMirrored.Rounded.QueueMusic, "Add to queue") { vm.enqueue(item); dismiss {} }
+                            }
+                            ActionMenuGroup("Your music") {
+                                GlimpseOption(if (item.id in library.favorites) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+                                    if (item.id in library.favorites) "Remove from favorites" else "Add to favorites") { vm.favorite(item); dismiss {} }
+                                GlimpseOption(Icons.Rounded.PersonOutline, "View artist") { dismiss { stop(); vm.closeGlimpseCollection(); vm.openArtist(vm.cachedArtists(item).firstOrNull() ?: item.artist, item) } }
+                                GlimpseOption(Icons.Rounded.Album, "View album") { dismiss { album(item) } }
+                            }
+                            if (item.source == Source.YOUTUBE) ActionMenuGroup("On YouTube") {
+                                GlimpseOption(Icons.Rounded.ChatBubbleOutline, "Comments on YouTube") { dismiss { external("https://www.youtube.com/watch?v=${item.id}") } }
+                                GlimpseOption(Icons.Rounded.SmartDisplay, "Use sound in Shorts") { dismiss { external("https://www.youtube.com/source/${item.id}/shorts") } }
+                            }
+                            ActionMenuGroup {
+                                GlimpseOption(Icons.Rounded.ThumbDownOffAlt, "Not interested") { dismiss { vm.lessLike(item); hiddenIds = hiddenIds + item.id; nextPage() } }
+                                if (collection == null) GlimpseOption(Icons.Rounded.Refresh, "Refresh videos") { dismiss { stop(); vm.loadGlimpses(refresh = true); scope.launch { pager.scrollToPage(0) } } }
+                            }
+                        }
+                        GlimpsePanel.MESSAGE -> Text(message, color = Color.White.copy(alpha = .8f), modifier = Modifier.padding(vertical = 24.dp))
+                        else -> Unit
                     }
-                    GlimpsePanel.MESSAGE -> Text(message, color = Color.White.copy(alpha = .8f), modifier = Modifier.padding(vertical = 24.dp))
-                    else -> Unit
+                    Spacer(Modifier.height(16.dp))
                 }
-                Spacer(Modifier.height(16.dp))
             }
         }
     }
@@ -363,13 +390,7 @@ private fun GlimpseIcon(icon: ImageVector, label: String, selected: Boolean = fa
 
 @Composable
 private fun GlimpseOption(icon: ImageVector, label: String, onClick: () -> Unit) {
-    val interaction = remember { MutableInteractionSource() }
-    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).pressFeedback(interaction, .98f)
-        .clickable(interactionSource = interaction, indication = LocalIndication.current, onClick = hapticAction(onClick))
-        .padding(vertical = 14.dp, horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-        Icon(icon, null, Modifier.size(23.dp), tint = Color.White.copy(alpha = .8f))
-        Text(label, color = Color.White, fontSize = 14.sp)
-    }
+    ActionMenuRow(icon, label, onClick = onClick)
 }
 
 internal fun openGlimpseYoutube(context: android.content.Context, url: String): Boolean {

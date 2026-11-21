@@ -67,11 +67,38 @@ class NewPipeExtractionEngine(private val fastAudio: Boolean = true, sessionDire
     }
 
     override fun artistSongs(profile: ArtistProfile): List<Track> = withProviderErrors {
-        if (profile.popularSongs.isNotEmpty()) return@withProviderErrors profile.popularSongs
+        artistSongsPage(profile).tracks
+    }
+
+    override fun artistSongsPage(profile: ArtistProfile, cursor: ArtistSongsCursor?): ArtistSongsPage = withProviderErrors {
+        require(cursor == null || cursor.artistUrl == profile.channelUrl)
+        if (cursor?.token != null || (cursor == null && profile.songsEndpoint != null)) {
+            try {
+                val payload = org.json.JSONObject()
+                if (cursor?.token != null) payload.put("continuation", cursor.token)
+                else profile.songsEndpoint!!.let { endpoint ->
+                    payload.put("browseId", endpoint.browseId)
+                    if (endpoint.params.isNotBlank()) payload.put("params", endpoint.params)
+                }
+                val raw = musicRequest("browse", payload)
+                val songs = MusicSearchParser.parse(raw).tracks.distinctBy { it.id }
+                val next = MusicArtistSongsParser.continuation(raw)?.let { ArtistSongsCursor(profile.channelUrl, token = it) }
+                if (cursor != null || songs.isNotEmpty() || next != null) return@withProviderErrors ArtistSongsPage(songs, next)
+            } catch (error: Exception) {
+                // Only the initial Music catalog can fall back to the artist's own uploads.
+                // Mixing providers partway through pagination could duplicate or skip songs.
+                if (cursor != null || Thread.currentThread().isInterrupted || error is kotlinx.coroutines.CancellationException) throw error
+            }
+        }
         val id = profile.channelUrl.substringAfterLast('/').substringBefore('?')
         require(Regex("UC[A-Za-z0-9_-]{22}").matches(id))
-        val extractor = ServiceList.YouTube.getChannelTabExtractorFromId(id, "videos").regional().also { it.fetchPage() }
-        extractor.initialPage.items.filterIsInstance<StreamInfoItem>().map(::mapSong).distinctBy { it.id }
+        val extractor = cursor?.extractor ?: ServiceList.YouTube.getChannelTabExtractorFromId(id, "videos").regional().also { it.fetchPage() }
+        val page = if (cursor == null) extractor.initialPage else extractor.getPage(requireNotNull(cursor.page))
+        if (page.items.isEmpty() && page.errors.isNotEmpty()) throw page.errors.first()
+        val songs = page.items.filterIsInstance<StreamInfoItem>().map(::mapSong).distinctBy { it.id }
+        val next = page.nextPage?.takeIf { org.schabi.newpipe.extractor.Page.isValid(it) }
+            ?.let { ArtistSongsCursor(profile.channelUrl, page = it, extractor = extractor) }
+        ArtistSongsPage(songs, next)
     }
 
     override fun artistDetails(profile: ArtistProfile): ArtistProfile {
@@ -191,6 +218,7 @@ class NewPipeExtractionEngine(private val fastAudio: Boolean = true, sessionDire
         if (kind == "All") return@withProviderErrors MusicSearchParser.parse(musicRequest("search", org.json.JSONObject().put("query", query)))
         val filter = when (kind) {
             "Videos" -> YoutubeSearchQueryHandlerFactory.MUSIC_VIDEOS
+            "Podcasts" -> YoutubeSearchQueryHandlerFactory.PLAYLISTS
             "Artists" -> YoutubeSearchQueryHandlerFactory.MUSIC_ARTISTS
             "Albums" -> YoutubeSearchQueryHandlerFactory.MUSIC_ALBUMS
             "Playlists" -> YoutubeSearchQueryHandlerFactory.MUSIC_PLAYLISTS

@@ -9,7 +9,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.semantics.*
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.*
 import com.arohamusic.app.domain.*
 import java.time.LocalDate
@@ -47,7 +46,7 @@ fun ListeningStatistics(features: FeatureState, library: LibraryState) {
                     weeks.forEachIndexed { i, ms ->
                         Column(Modifier.weight(1f).fillMaxHeight().motionClickable { week = i }.semantics { contentDescription = "Week ${i + 1}: ${ms / 60_000} minutes"; selected = week == i }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Bottom) {
                             Box(Modifier.fillMaxWidth().height((ms.toFloat() / max * 110).coerceAtLeast(6f).dp).motionBar("week-$month-$i").background(if (week == i) Lavender else Lavender.copy(alpha = .35f), MaterialTheme.shapes.small))
-                            Text("W${i + 1}", fontSize = 11.sp, modifier = Modifier.padding(top = 8.dp))
+                            Text("W${i + 1}", style = ArohaType.Caption, modifier = Modifier.padding(top = 8.dp))
                         }
                     }
                 }
@@ -65,13 +64,13 @@ fun ListeningStatistics(features: FeatureState, library: LibraryState) {
 @Composable
 private fun StatTile(label: String, value: String, modifier: Modifier) {
     Column(modifier.glass().padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(value, fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = Lavender); Text(label, fontSize = 11.sp, color = Muted)
+        Text(value, style = ArohaType.Stat, color = Lavender); Text(label, style = ArohaType.Caption, color = Muted)
     }
 }
 @Composable
 private fun RankedBar(rank: Int, item: RankedListen, max: Long) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Row { Text("$rank. ${item.label}", Modifier.weight(1f), maxLines = 2); Text("${item.milliseconds / 60_000} min", color = Muted, fontSize = 12.sp) }
+        Row { Text("$rank. ${item.label}", Modifier.weight(1f), maxLines = 2); Text("${item.milliseconds / 60_000} min", color = Muted, style = ArohaType.Metadata) }
         LinearProgressIndicator(progress = { (item.milliseconds.toFloat() / max.coerceAtLeast(1)).coerceIn(0f, 1f) }, color = Lavender,
             modifier = Modifier.fillMaxWidth().height(3.dp).motionReveal("rank-${item.label}", rank))
     }

@@ -12,7 +12,7 @@ import java.security.MessageDigest
 class UpdateDownloadTest {
     private val bytes = "synthetic APK bytes".toByteArray()
     private val release = GitHubRelease("1.25.0", "notes", RELEASES_URL,
-        "https://github.com/lxexe/Aroha-Music-App/releases/download/v1.25.0/Aroha-Music-1.25.0.apk",
+        "https://github.com/ArohaMusic/Aroha-Music-App/releases/download/v1.25.0/Aroha-Music-1.25.0.apk",
         MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) })
     private class Factory(val respond: (Request) -> Response) : Call.Factory {
         var requests = 0

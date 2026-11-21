@@ -25,7 +25,7 @@ class MonitoringTest(unittest.TestCase):
         with patch("release_health.urllib.request.urlopen", side_effect=missing) as request:
             self.assertIsNone(fetch_release())
             self.assertEqual(1, request.call_count)
-            self.assertEqual("https://api.github.com/repos/lxexe/Aroha-Music-App/releases/latest", request.call_args.args[0].full_url)
+            self.assertEqual("https://api.github.com/repos/ArohaMusic/Aroha-Music-App/releases/latest", request.call_args.args[0].full_url)
         denied = urllib.error.HTTPError("https://api.github.com/fixture", 403, "denied", {}, None)
         with patch("release_health.urllib.request.urlopen", side_effect=denied) as request:
             with self.assertRaises(urllib.error.HTTPError):

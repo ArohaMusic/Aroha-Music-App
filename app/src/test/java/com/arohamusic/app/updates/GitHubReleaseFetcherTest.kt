@@ -11,12 +11,12 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class GitHubReleaseFetcherTest {
-    private val prefix = "https://github.com/lxexe/Aroha-Music-App/releases/download/v1.1.0/"
+    private val prefix = "https://github.com/ArohaMusic/Aroha-Music-App/releases/download/v1.1.0/"
     private val identityUrl = prefix + "release-identity.json"
     private fun identity() = JSONObject().put("application_id", "com.arohamusic.app").put("version", "1.1.0")
         .put("version_code", 2).put("sha256", "ab".repeat(32)).put("certificate_sha256", "cd".repeat(32))
     private fun release() = JSONObject().put("tag_name", "v1.1.0")
-        .put("html_url", "https://github.com/lxexe/Aroha-Music-App/releases/tag/v1.1.0")
+        .put("html_url", "https://github.com/ArohaMusic/Aroha-Music-App/releases/tag/v1.1.0")
         .put("assets", JSONArray().put(JSONObject().put("name", "release-identity.json").put("state", "uploaded")
             .put("size", 300).put("browser_download_url", identityUrl))
             .put(JSONObject().put("name", "Aroha-Music-1.1.0.apk").put("state", "uploaded")

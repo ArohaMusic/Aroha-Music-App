@@ -20,4 +20,6 @@ data class BrowsePageState(
     val releases: ContentState<com.arohamusic.app.domain.Track> = ContentState(loading = true),
     val playlists: ContentState<com.arohamusic.app.data.youtube.BrowseCollection> = ContentState(loading = true),
     val albums: ContentState<com.arohamusic.app.data.youtube.BrowseCollection> = ContentState(loading = true),
+    val videos: ContentState<com.arohamusic.app.domain.Track> = ContentState(),
+    val destination: com.arohamusic.app.domain.HomeDestination? = null,
 )

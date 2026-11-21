@@ -1,5 +1,6 @@
 package com.arohamusic.app.ui
 
+import androidx.compose.animation.Animatable
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
 import androidx.compose.runtime.*
@@ -24,12 +25,13 @@ private val moodCache = object : LinkedHashMap<String, Long>(24, .75f, true) {
 @Composable
 private fun rememberArtworkSeed(artwork: String): State<Long> {
     val context = LocalContext.current
-    val fallback = LocalAppearance.current.accent
-    return produceState(moodCache[artwork] ?: fallback, artwork, fallback) {
+    // Missing/monochrome covers stay neutral rather than inventing an accent-coloured backdrop.
+    val fallback = 0xFF606060L
+    return produceState(moodCache[artwork] ?: fallback, artwork) {
         moodCache[artwork]?.let { value = it; return@produceState }
         if (artwork.isBlank()) { value = fallback; return@produceState }
         try {
-            val source = if (artwork.startsWith("asset://")) "file:///android_asset/${artwork.removePrefix("asset://")}" else artwork
+            val source = com.arohamusic.app.data.ArtworkRequests.source(artwork, 96)
             val result = context.imageLoader.execute(ImageRequest.Builder(context).data(source).size(48)
                 .allowHardware(false).build()) as? SuccessResult ?: return@produceState
             value = withContext(Dispatchers.Default) {
@@ -45,21 +47,27 @@ private fun rememberArtworkSeed(artwork: String): State<Long> {
 }
 
 @Composable
-fun Modifier.dynamicPlayerBackground(artwork: String): Modifier {
-    // Playback toggles preserve the current artwork tone.
-    return dynamicArtworkBackground(artwork, player = true)
+fun Modifier.dynamicPlayerBackground(artwork: String, dark: Boolean = LocalDarkTheme.current): Modifier {
+    val seed by rememberArtworkSeed(artwork)
+    val profile = motionProfile()
+    val effects = LocalAppearance.current.effects
+    val target = Color(playerBackdropTone(seed, dark))
+    val color = remember { Animatable(Color(playerBackdropTone(0xFF606060, dark))) }
+    val duration = if (effects) profile.duration(650) else 0
+    // Start from neutral on entry. Subsequent loads keep the current tone until artwork is
+    // ready; cancellation retargets the running fade instead of flashing through black.
+    LaunchedEffect(target, duration) {
+        if (duration == 0) color.snapTo(target)
+        else color.animateTo(target, tween(duration, easing = FastOutSlowInEasing))
+    }
+    return drawBehind { drawRect(color.value) }
 }
 
 /** Non-player pages stay neutral; lyrics use a single restrained artwork tone. */
 @Composable
 fun Modifier.dynamicArtworkBackground(artwork: String, player: Boolean = false): Modifier {
     if (!player) return background(Ink)
-    val appearance = LocalAppearance.current
-    val seed by rememberArtworkSeed(artwork)
-    val color by animateColorAsState(Color(AccentPalette.tone(AccentPalette.hue(seed),
-        AccentPalette.saturation(seed).coerceAtMost(.15), if (LocalDarkTheme.current) .09 else .96)),
-        tween(if (appearance.reduceMotion) 0 else 800), label = "Artwork tone")
-    return background(color)
+    return dynamicPlayerBackground(artwork)
 }
 
 /** Preset atmosphere follows local time and the active theme, never album artwork. */

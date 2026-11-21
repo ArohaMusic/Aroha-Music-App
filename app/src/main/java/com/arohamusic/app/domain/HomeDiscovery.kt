@@ -1,0 +1,21 @@
+package com.arohamusic.app.domain
+
+enum class HomeDestination(val label: String) {
+    RELEASES("New releases"), CHARTS("Charts"), PODCASTS("Podcasts"), VIDEOS("Music videos")
+}
+
+/** Shortcuts use only playable library entries and real discovery results, never placeholder media. */
+data class SpeedDialEntry(val key: String, val title: String, val subtitle: String, val artwork: String,
+    val tracks: List<Track>, val playlist: Boolean = false)
+
+fun homeSpeedDial(library: LibraryState, pinned: Set<String>, candidates: List<Track>, limit: Int = 6): List<SpeedDialEntry> {
+    val metadata = (candidates + library.savedTracks).associateBy { it.id }
+    val playlists = library.playlists.filter { it.id in pinned }.mapNotNull { playlist ->
+        val tracks = playlist.trackIds.distinct().mapNotNull(metadata::get)
+        tracks.firstOrNull()?.let { first -> SpeedDialEntry("playlist:${playlist.id}", playlist.name, "Playlist",
+            playlist.coverUri.ifBlank { first.artwork }, tracks, playlist = true) }
+    }.take(2)
+    val songs = (library.recentIds + library.favorites + candidates.map { it.id }).distinct().mapNotNull(metadata::get)
+        .map { SpeedDialEntry("song:${it.id}", it.title, it.artist, it.artwork, listOf(it)) }
+    return (playlists + songs).take(limit.coerceIn(0, 9))
+}

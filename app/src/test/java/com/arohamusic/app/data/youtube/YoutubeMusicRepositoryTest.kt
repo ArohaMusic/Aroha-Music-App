@@ -10,6 +10,25 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
 class YoutubeMusicRepositoryTest {
+    @Test fun musicVideoSearchHandlesBothProviderShapesCachesAndRefreshesIndependently() = runBlocking {
+        var calls = 0
+        val video = Track("5NV6Rdv1a3I", "Video", "Artist", "", 180)
+        val engine = object : FakeEngine() {
+            override fun searchSongs(query: String) = error("Video search must not use the song filter")
+            override fun audioStreamUrl(trackId: String) = error("Discovery must not resolve playback URLs")
+            override fun searchPage(query: String, kind: String, cursor: SearchCursor?): SearchPage {
+                assertEquals("Videos", kind); calls++
+                return if (calls == 1) SearchPage(videos = listOf(video, video)) else SearchPage(tracks = listOf(video))
+            }
+        }
+        val repository = YoutubeMusicRepository(engine)
+        assertEquals(listOf(video), repository.getMusicVideos("music"))
+        assertEquals(listOf(video), repository.getMusicVideos("MUSIC"))
+        assertEquals(1, calls)
+        assertEquals(listOf(video), repository.getMusicVideos("music", refresh = true))
+        assertEquals(2, calls)
+    }
+
     @Test fun verificationDoesNotTriggerTheRepositoryNetworkRetry() = runBlocking {
         var calls = 0
         val engine = object : FakeEngine() {

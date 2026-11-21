@@ -99,8 +99,8 @@ fun Pill(text: String, selected: Boolean = false, onClick: () -> Unit) {
     Surface(onClick = hapticAction(onClick), interactionSource = source,
         modifier = Modifier.pressFeedback(source, .95f).semantics { this.selected = selected; role = Role.RadioButton }, shape = RoundedCornerShape(50), color = fill,
         border = BorderStroke(1.dp, if(selected) Lavender else MaterialTheme.colorScheme.outlineVariant)) {
-        Text(text, modifier = Modifier.heightIn(min = 48.dp).wrapContentHeight().padding(horizontal = 19.dp, vertical = 10.dp), fontSize = 12.sp,
-            fontWeight = if(selected) FontWeight.SemiBold else FontWeight.Normal, color = if(selected) OnAccent else Muted)
+        Text(text, modifier = Modifier.heightIn(min = 48.dp).wrapContentHeight().padding(horizontal = 19.dp, vertical = 10.dp), style = ArohaType.Chip,
+            fontWeight = if(selected) FontWeight.SemiBold else FontWeight.Medium, color = if(selected) OnAccent else Muted)
     }
 }
 
@@ -114,11 +114,11 @@ fun TrackRow(track: Track, index: Int? = null, active: Boolean = false, favorite
         .cardPress("Play ${track.title}", onClick = onPlay)
         .semantics { if (active) stateDescription = "Current song" }
         .padding(horizontal = 8.dp, vertical = if (LocalAppearance.current.density == ContentDensity.COMPACT) 4.dp else 9.dp), verticalAlignment = Alignment.CenterVertically) {
-        if(index != null) Text(if(active) "♫" else "%02d".format(index), color = if(active) Lavender else Muted, fontSize = 11.sp, modifier = Modifier.width(29.dp))
+        if(index != null) Text(if(active) "♫" else "%02d".format(index), color = if(active) Lavender else Muted, style = ArohaType.Timestamp, modifier = Modifier.width(29.dp))
         Artwork(track, Modifier.size(48.dp))
         Column(Modifier.weight(1f).padding(start = 13.dp)) {
-            Text(track.title, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, lineHeight = 18.sp, color = if(active) Lavender else ContentColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(subtitle, color = Muted, fontSize = 11.sp, lineHeight = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 2.dp))
+            Text(track.title, style = ArohaType.TrackTitle, color = if(active) Lavender else ContentColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(subtitle, color = Muted, style = ArohaType.Metadata, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 2.dp))
         }
         if (showFavorite) FavoriteButton(favorite, if(favorite) "Remove ${track.title} from favorites" else "Favorite ${track.title}", onFavorite)
         accessory()
@@ -131,7 +131,7 @@ fun EmptyState(icon: ImageVector, title: String, detail: String, action: String?
     Column(Modifier.fillMaxWidth().motionReveal("empty-$title").padding(vertical = 50.dp, horizontal = 25.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Box(Modifier.size(72.dp).glass(24), contentAlignment = Alignment.Center) { MusicIcon(icon, null, tint = Lavender, modifier = Modifier.size(29.dp)) }
         Text(title, style = MaterialTheme.typography.titleLarge)
-        Text(detail, color = Muted, fontSize = 13.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+        Text(detail, color = Muted, style = ArohaType.Metadata, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
         if(action != null) MotionFilledTonalButton(onClick = onAction) { Text(action) }
     }
 }
@@ -140,7 +140,7 @@ fun timeLabel(ms: Long): String = "%d:%02d".format(ms / 60000, ms / 1000 % 60)
 
 /** Material sheets have their own window and need the same icon contrast as the app. */
 @Composable
-fun ThemeSheetSystemBars() {
+fun ThemeSheetSystemBars(darkStatusBar: Boolean = LocalDarkTheme.current) {
     val view = LocalView.current
     val dark = LocalDarkTheme.current
     SideEffect {
@@ -149,8 +149,9 @@ fun ThemeSheetSystemBars() {
             window.statusBarColor = android.graphics.Color.TRANSPARENT
             @Suppress("DEPRECATION")
             window.navigationBarColor = android.graphics.Color.TRANSPARENT
+            if (android.os.Build.VERSION.SDK_INT >= 29) window.isNavigationBarContrastEnforced = false
             WindowCompat.getInsetsController(window, window.decorView).apply {
-                isAppearanceLightStatusBars = !dark
+                isAppearanceLightStatusBars = !darkStatusBar
                 isAppearanceLightNavigationBars = !dark
             }
         }
@@ -161,11 +162,12 @@ fun ThemeSheetSystemBars() {
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun PlayerMarquee(text: String, modifier: Modifier = Modifier, color: Color = ContentColor,
-                  fontSize: TextUnit = 14.sp, fontWeight: FontWeight = FontWeight.Normal) {
+                  fontSize: TextUnit = TextUnit.Unspecified, fontWeight: FontWeight? = null,
+                  style: androidx.compose.ui.text.TextStyle = ArohaType.TrackTitle) {
     val motion = !LocalAppearance.current.reduceMotion
     Text(text, modifier = modifier.then(if (motion) Modifier.basicMarquee(iterations = Int.MAX_VALUE,
         initialDelayMillis = 1_600, repeatDelayMillis = 1_600, spacing = MarqueeSpacing(32.dp), velocity = 28.dp) else Modifier),
-        color = color, fontSize = fontSize, fontWeight = fontWeight, maxLines = 1,
+        color = color, style = style, fontSize = fontSize, fontWeight = fontWeight, maxLines = 1,
         softWrap = false, overflow = TextOverflow.Ellipsis)
 }
 
@@ -190,8 +192,8 @@ fun PlayerArtistLine(artists: List<String>, onArtist: (String) -> Unit) {
     }
     Row(Modifier.fillMaxWidth().padding(top = 3.dp).horizontalScroll(scroll)) {
         names.forEachIndexed { index, name ->
-            if (index > 0) Text(" · ", color = Muted, fontSize = 13.sp, modifier = Modifier.padding(vertical = 10.dp))
-            Text(name, color = Muted, fontSize = 13.sp, maxLines = 1, softWrap = false,
+            if (index > 0) Text(" · ", color = Muted, style = ArohaType.Metadata, modifier = Modifier.padding(vertical = 10.dp))
+            Text(name, color = Muted, style = ArohaType.Metadata, maxLines = 1, softWrap = false,
                 modifier = Modifier.motionClickable(enabled = name != "Unknown artist", role = Role.Button,
                     onClickLabel = "View $name") { onArtist(name) }.padding(vertical = 10.dp))
         }

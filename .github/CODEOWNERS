@@ -1,16 +1,16 @@
 # Require review for release identity, dependency sources, workflows and security policy.
 # Enable required code owner reviews in repository branch protection.
-/.github/ @lxexe
-/scripts/ @lxexe
-/public-source.json @lxexe
-/public-assets.json @lxexe
-/app/build.gradle.kts @lxexe
-/gradle/ @lxexe
-/settings.gradle.kts @lxexe
-/SECURITY.md @lxexe
-/PRIVACY.md @lxexe
-/app/src/main/java/com/arohamusic/app/updates/ @lxexe
-/app/src/main/java/com/arohamusic/app/analytics/ @lxexe
-/app/src/firebase/ @lxexe
-/app/src/debug/java/com/arohamusic/app/ui/CrashTestControls.kt @lxexe
-/app/src/nonDebug/java/com/arohamusic/app/ui/CrashTestControls.kt @lxexe
+/.github/ @ArohaMusic
+/scripts/ @ArohaMusic
+/public-source.json @ArohaMusic
+/public-assets.json @ArohaMusic
+/app/build.gradle.kts @ArohaMusic
+/gradle/ @ArohaMusic
+/settings.gradle.kts @ArohaMusic
+/SECURITY.md @ArohaMusic
+/PRIVACY.md @ArohaMusic
+/app/src/main/java/com/arohamusic/app/updates/ @ArohaMusic
+/app/src/main/java/com/arohamusic/app/analytics/ @ArohaMusic
+/app/src/firebase/ @ArohaMusic
+/app/src/debug/java/com/arohamusic/app/ui/CrashTestControls.kt @ArohaMusic
+/app/src/nonDebug/java/com/arohamusic/app/ui/CrashTestControls.kt @ArohaMusic

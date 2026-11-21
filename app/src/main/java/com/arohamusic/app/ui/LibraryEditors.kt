@@ -20,7 +20,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.distinctUntilChanged
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
 import com.arohamusic.app.domain.*
@@ -169,7 +168,7 @@ fun QueueEditor(vm: MusicViewModel, onClose: () -> Unit = {}, onMore: (Track) ->
         Row(Modifier.fillMaxWidth().padding(bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text("Up next", style = MaterialTheme.typography.headlineMedium)
-                Text(if (playback.recommendationChain) "Endless radio · ${playback.upcomingIndices.size} ready" else "${playback.upcomingIndices.size} upcoming songs", color = Muted, fontSize = 12.sp)
+                Text(if (playback.recommendationChain) "Endless radio · ${playback.upcomingIndices.size} ready" else "${playback.upcomingIndices.size} upcoming songs", color = Muted, style = ArohaType.Metadata)
             }
             Box {
                 Glyph(Icons.Rounded.MoreVert, "Queue settings") { menu = true }

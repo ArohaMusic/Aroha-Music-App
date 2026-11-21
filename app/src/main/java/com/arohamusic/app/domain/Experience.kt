@@ -1,6 +1,6 @@
 package com.arohamusic.app.domain
 
-val defaultHomeSections = listOf("quick", "moods", "recent", "recommended", "trending", "releases", "playlists", "genres", "artists", "albums")
+val defaultHomeSections = listOf("quick", "moods", "recent", "recommended", "trending", "videos", "releases", "playlists", "genres", "artists", "albums")
 val defaultHomeMoods = listOf("For you", "Romance", "Dance", "Party", "Feel good", "Workout", "Relax", "Focus", "Sleep")
 data class ExperiencePreferences(
     val pinnedPlaylists: Set<String> = emptySet(),
@@ -8,7 +8,7 @@ data class ExperiencePreferences(
     val libraryGrid: Boolean = false,
     val lyricTextSize: Int = 23,
     val lyricBlur: Boolean = true,
-    val lyricCentered: Boolean = false,
+    val lyricCentered: Boolean = true,
     val lyricOffsetMs: Long = 0,
     val homeMoods: List<String> = defaultHomeMoods,
     val lyricProvider: LyricProvider = LyricProvider.AUTO,

@@ -174,7 +174,7 @@ internal class LyricsHttp {
         val wait = nextRequestAt - System.currentTimeMillis()
         if (wait > 1_000) throw LyricsBackoff(nextRequestAt)
         if (wait > 0) delay(wait)
-        val request = Request.Builder().url(url).header("User-Agent", "ArohaMusic/${com.arohamusic.app.BuildConfig.VERSION_NAME} (https://github.com/lxexe/Aroha-Music-App)").build()
+        val request = Request.Builder().url(url).header("User-Agent", "ArohaMusic/${com.arohamusic.app.BuildConfig.VERSION_NAME} (https://github.com/ArohaMusic/Aroha-Music-App)").build()
         val response = await(client.newCall(request))
         withContext(Dispatchers.IO) { response.use {
             nextRequestAt = System.currentTimeMillis() + 300

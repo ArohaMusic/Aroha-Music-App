@@ -7,7 +7,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
@@ -42,13 +41,13 @@ fun PlayerSleepTimer(vm: MusicViewModel) {
         MusicIcon(Icons.Rounded.Bedtime, null, tint = Lavender)
         Column(Modifier.weight(1f).padding(start = 14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text("Sleep timer", color = ContentColor)
-            Text(if (sleep.active) timerLabel else "Off", color = Muted, fontSize = 12.sp)
+            Text(if (sleep.active) timerLabel else "Off", color = Muted, style = ArohaType.Metadata)
         }
     }
     if(timerDialog) AlertDialog(onDismissRequest = { timerDialog = false }, title = { Text("Sleep timer") }, text = {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             if (sleep.active) Text(timerLabel, color = Lavender, fontWeight = FontWeight.SemiBold)
-            Text("Music pauses when the timer ends, even if you leave the app.", color = Muted, fontSize = 12.sp)
+            Text("Music pauses when the timer ends, even if you leave the app.", color = Muted, style = ArohaType.Metadata)
             listOf(5, 15, 30, 45, 60).forEach { minutes -> MotionTextButton(onClick = { vm.sleep(minutes); timerDialog = false }) { Text("$minutes minutes") } }
             MotionTextButton(onClick = { vm.sleepAtEndOfTrack(); timerDialog = false }) { Text("At the end of this song") }
             if (sleep.active) MotionTextButton(onClick = { vm.sleep(0); timerDialog = false }) { Text("Cancel timer") }

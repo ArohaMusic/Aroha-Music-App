@@ -79,7 +79,7 @@ class HomeRefreshTest {
             assertFalse(vm.homeSongs.value.loading)
             engine.gate?.countDown(); engine.gate = null
             withContext(Dispatchers.Main) { vm.resumeHomeIfNeeded() }
-            eventually { !vm.homeSongs.value.loading && vm.homeSongs.value.items.size == 20 }
+            eventually { !vm.homeSongs.value.loading && vm.quickPicks.value.items.size == 20 }
             assertTrue(engine.calls.get() > 1)
         }
     }
@@ -146,6 +146,35 @@ class HomeRefreshTest {
             assertTrue("Personal retrieval takes priority over generic discovery", engine.queries[before].contains("Preferred Singer"))
             assertTrue("Personalized picks do not query unrelated regional trends", engine.queries.drop(before).all { it == "Preferred Singer songs" })
             collect.cancelAndJoin()
+        }
+    }
+
+    @Test fun historyAndFavoriteChangesCannotReorderTheVisibleBatch() = runBlocking {
+        withHome { vm, engine ->
+            eventually { vm.quickPicks.value.items.size == 20 && !vm.homeSongs.value.loading }
+            val before = vm.quickPicks.value.items.map { it.id }
+            val calls = engine.calls.get()
+            val last = vm.quickPicks.value.items.last()
+            app.features.update { it.copy(history = listOf(ListenRecord(last.id, java.time.LocalDate.now().toString(), 180_000, 3, 0))) }
+            app.library.update { it.copy(favorites = setOf(last.id), savedTracks = listOf(last)) }
+            delay(350)
+            assertEquals(before, vm.quickPicks.value.items.map { it.id })
+            withContext(Dispatchers.Main) { vm.pauseHomeLoading(freezeQuickPicks = true); vm.resumeHomeIfNeeded() }
+            delay(250)
+            assertEquals(calls, engine.calls.get())
+            assertEquals(before, vm.quickPicks.value.items.map { it.id })
+        }
+    }
+    @Test fun cancellingEmptyShelvesKeepsLoadingUntilARealResultArrives() = runBlocking {
+        withHome(configure = { it.gate = CountDownLatch(1) }) { vm, engine ->
+            eventually { engine.calls.get() > 0 }
+            withContext(Dispatchers.Main) { vm.pauseHomeLoading() }
+            assertTrue("Pending songs retain their skeleton", vm.homeSongs.value.loading)
+            assertTrue("Unrequested collections are not finished empty results", vm.homePlaylists.value.loading)
+            assertNull(vm.homePlaylists.value.error)
+            engine.gate?.countDown(); engine.gate = null
+            withContext(Dispatchers.Main) { vm.resumeHomeIfNeeded() }
+            eventually { !vm.homeSongs.value.loading }
         }
     }
 

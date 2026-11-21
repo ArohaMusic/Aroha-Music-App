@@ -8,6 +8,14 @@ import java.time.LocalDate
 import java.time.YearMonth
 
 class UiUpgradeTest {
+    @Test fun lyricsDefaultToCenterAndRememberLaterAlignmentChoices() {
+        assertTrue(ExperiencePreferences().lyricCentered)
+        val migrated = FeatureCodec.decode("""{"experience":{"lyricDefaultsVersion":1,"lyricCentered":false,"lyricTextSize":29}}""")
+        assertTrue(migrated.experience.lyricCentered)
+        assertEquals(29, migrated.experience.lyricTextSize)
+        val chosen = migrated.copy(experience = migrated.experience.copy(lyricCentered = false))
+        assertFalse(FeatureCodec.decode(FeatureCodec.encode(chosen)).experience.lyricCentered)
+    }
     private val song = Track("abcdefghijk", "Song", "Artist", "", "abcdefghijk", Source.YOUTUBE)
     private val local = song.copy(id = "local-file", uri = "content://documents/audio/1", source = Source.LOCAL)
 

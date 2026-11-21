@@ -61,7 +61,7 @@ object FeatureCodec {
             put("homeMoods", JSONArray(s.experience.homeMoods))
             put("lyricProvider", s.experience.lyricProvider.name); put("lyricFallback", s.experience.lyricFallback)
             put("lyricBehavior", s.experience.lyricBehavior.name)
-            put("lyricDefaultsVersion", 1)
+            put("lyricDefaultsVersion", 2)
             put("pinnedPlaylists", JSONArray(s.experience.pinnedPlaylists.toList())); put("followedArtists", JSONArray(s.experience.followedArtists.toList()))
             put("libraryGrid", s.experience.libraryGrid); put("lyricTextSize", s.experience.lyricTextSize)
             put("lyricBlur", s.experience.lyricBlur); put("lyricCentered", s.experience.lyricCentered); put("lyricOffsetMs", s.experience.lyricOffsetMs)
@@ -118,7 +118,8 @@ object FeatureCodec {
         val x = j.optJSONObject("experience") ?: JSONObject()
         fun list(key: String): List<String> = x.optJSONArray(key)?.let { a -> List(a.length()) { a.optString(it) } }.orEmpty()
         val experience = ExperiencePreferences(list("pinnedPlaylists").toSet(), list("followedArtists").toSet(), x.optBoolean("libraryGrid"),
-            x.optInt("lyricTextSize", 23), x.optBoolean("lyricBlur", true), x.optBoolean("lyricCentered"), x.optLong("lyricOffsetMs"),
+            x.optInt("lyricTextSize", 23), x.optBoolean("lyricBlur", true),
+            if (x.optInt("lyricDefaultsVersion") < 2) true else x.optBoolean("lyricCentered", true), x.optLong("lyricOffsetMs"),
             homeMoods = if (x.has("homeMoods")) list("homeMoods") else defaultHomeMoods,
             lyricProvider = runCatching { LyricProvider.valueOf(x.getString("lyricProvider")) }.getOrDefault(LyricProvider.AUTO)
                 .let { if (x.optInt("lyricDefaultsVersion") < 1) LyricProvider.AUTO else it },

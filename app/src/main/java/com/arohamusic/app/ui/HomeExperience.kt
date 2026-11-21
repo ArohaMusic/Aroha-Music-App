@@ -6,8 +6,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material.icons.outlined.*
@@ -18,17 +16,15 @@ import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.*
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
 import com.arohamusic.app.domain.*
 import java.time.LocalDateTime
-import kotlinx.coroutines.launch
 
 internal val homeSectionNames = mapOf("quick" to "Quick picks", "moods" to "Music for your moment",
     "recent" to "Recently played", "recommended" to "Recommended", "trending" to "Trending", "releases" to "New releases",
-    "playlists" to "Popular playlists", "genres" to "Genres", "artists" to "Artists", "albums" to "Albums")
+    "playlists" to "Popular playlists", "genres" to "Genres", "artists" to "Artists", "albums" to "Albums", "videos" to "Music videos")
 
 @UnstableApi
 @Composable
@@ -37,6 +33,7 @@ fun DiscoveryScreen(vm: MusicViewModel, mood: String, onMood: (String) -> Unit, 
     val picks by vm.quickPicks.collectAsStateWithLifecycle()
     val trending by vm.homeTrending.collectAsStateWithLifecycle()
     val releases by vm.homeNewReleases.collectAsStateWithLifecycle()
+    val videos by vm.homeVideos.collectAsStateWithLifecycle()
     val playlists by vm.homePlaylists.collectAsStateWithLifecycle()
     val albums by vm.homeAlbums.collectAsStateWithLifecycle()
     val library by vm.library.collectAsStateWithLifecycle()
@@ -48,6 +45,7 @@ fun DiscoveryScreen(vm: MusicViewModel, mood: String, onMood: (String) -> Unit, 
     val activeId by vm.activeTrackId.collectAsStateWithLifecycle()
     val metadata by vm.trackIndex.collectAsStateWithLifecycle()
     val recent = remember(library.recentIds, metadata) { library.recentIds.mapNotNull(metadata::get).take(12) }
+    val speedDial = remember(library, experience.pinnedPlaylists, picks.items) { homeSpeedDial(library, experience.pinnedPlaylists, picks.items) }
     val artists = remember(picks.items, recent, experience.followedArtists) {
         (experience.followedArtists.toList() + (picks.items + recent).flatMap { com.arohamusic.app.data.youtube.ArtistNames.fallback(it.artist) }).distinct().take(16)
     }
@@ -63,8 +61,8 @@ fun DiscoveryScreen(vm: MusicViewModel, mood: String, onMood: (String) -> Unit, 
             verticalArrangement = Arrangement.spacedBy(20.dp)) {
             item(key = "header", contentType = "header") {
                 Row(Modifier.fillMaxWidth().padding(horizontal = 22.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Image(androidx.compose.ui.res.painterResource(com.arohamusic.app.R.drawable.brand_mark), null, modifier = Modifier.size(30.dp), colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(Lavender))
-                    Text(androidx.compose.ui.res.stringResource(com.arohamusic.app.R.string.app_name), fontSize = 22.sp, letterSpacing = (-.6).sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 8.dp))
+                    AnimatedBrandMark(Modifier.size(30.dp))
+                    Text(androidx.compose.ui.res.stringResource(com.arohamusic.app.R.string.app_name), style = ArohaType.Brand, modifier = Modifier.padding(start = 8.dp))
                     Spacer(Modifier.weight(1f))
                     Glyph(Icons.Outlined.Search, "Search", onClick = { onSearch("") })
                     Glyph(Icons.Outlined.Tune, "Settings", onClick = onSettings)
@@ -73,34 +71,35 @@ fun DiscoveryScreen(vm: MusicViewModel, mood: String, onMood: (String) -> Unit, 
             item(key = "mood-chips", contentType = "chips") {
                 LazyRow(contentPadding = PaddingValues(horizontal = 22.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(experience.homeMoods, key = { it }) { choice ->
-                        val selected = mood.equals(choice, true)
-                        val source = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
-                        Surface(onClick = { if (!selected) { onMood(choice); vm.loadHome(choice) } }, interactionSource = source,
-                            modifier = Modifier.pressFeedback(source, .94f),
-                            shape = RoundedCornerShape(10.dp), color = if (selected) ContentColor else ContentColor.copy(alpha = .10f),
-                            contentColor = if (selected) Ink else ContentColor) {
-                            Text(choice, fontSize = 12.sp, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-                                modifier = Modifier.heightIn(min = 48.dp).wrapContentHeight().padding(horizontal = 16.dp, vertical = 12.dp))
+                        MusicCategoryChip(choice, mood.equals(choice, true)) {
+                            if (!mood.equals(choice, true)) { onMood(choice); vm.loadHome(choice) }
                         }
                     }
                     item(key = "add-mood") {
-                        val source = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
-                        Surface(onClick = { addMood = true }, interactionSource = source,
-                            modifier = Modifier.pressFeedback(source, .94f), shape = RoundedCornerShape(10.dp), color = ContentColor.copy(alpha = .10f)) {
-                        MusicIcon(Icons.Outlined.Add, "Add mood chip", modifier = Modifier.padding(14.dp).size(22.dp))
-                    } }
+                        MusicCategoryChip("Add", false, onClick = { addMood = true },
+                            leadingIcon = { MusicIcon(Icons.Outlined.Add, null, modifier = Modifier.size(16.dp)) })
+                    }
                 }
             }
             item(key = "greeting", contentType = "header") {
                 Column(Modifier.padding(horizontal = 22.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(greeting.title, fontSize = 23.sp, lineHeight = 28.sp, fontWeight = FontWeight.Bold)
-                    Text(greeting.message, fontSize = 12.sp, color = Muted)
+                    Text(greeting.title, style = MaterialTheme.typography.headlineSmall)
+                    Text(greeting.message, style = ArohaType.Metadata, color = Muted)
                 }
+            }
+            if (speedDial.isNotEmpty() || picks.loading) item(key = "speed-dial", contentType = "speed-dial") {
+                SpeedDialShelf(speedDial, picks.loading, { entry ->
+                    vm.play(entry.tracks.first(), entry.tracks, ordered = entry.playlist, recommendationChain = !entry.playlist)
+                }, onMore)
             }
             itemsIndexed(sections, key = { _, section -> section }, contentType = { _, _ -> "home-section" }) { index, section ->
                 LaunchedEffect(section) { vm.requestHomeSection(section) }
                 EnterHomeSection(section, index) {
                     when (section) {
+                        "videos" -> {
+                            HomeHeading("Music videos", "Watch your next favorite", "See all") { vm.openHomeDestination(HomeDestination.VIDEOS) }
+                            MusicVideoShelf(videos, { vm.loadHome(mood, refresh = true) }, { vm.play(it, watchVideo = true) }, onMore)
+                        }
                         "quick", "trending", "releases", "recommended", "recent" -> {
                             val state = when (section) { "quick" -> picks; "trending" -> trending; "releases" -> releases
                                 "recommended" -> ContentState(items = mix); else -> ContentState(items = recent) }
@@ -124,11 +123,19 @@ fun DiscoveryScreen(vm: MusicViewModel, mood: String, onMood: (String) -> Unit, 
                             HomeHeading("Artists", "Follow the voices you love")
                             LazyRow(contentPadding = PaddingValues(horizontal = 22.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                                 items(artists, key = { it }) { name -> Column(Modifier.width(100.dp).motionClickable { vm.openArtist(name) }, horizontalAlignment = Alignment.CenterHorizontally) {
-                                    ArtistPortrait(vm, name, Modifier.size(96.dp).clip(CircleShape)); Text(name, fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
+                                    ArtistPortrait(vm, name, Modifier.size(96.dp).clip(CircleShape))
+                                    Text(name, style = ArohaType.Caption, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.padding(top = 8.dp))
                                 } }
                             }
                         }
                     }
+                }
+            }
+            item(key = "discovery-tabs", contentType = "discovery-tabs") {
+                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    HomeHeading("Explore more", "New sounds, charts and conversations")
+                    HomeDiscoveryTabs(onSelect = vm::openHomeDestination)
                 }
             }
         }
@@ -164,22 +171,13 @@ private fun AddHomeMoodDialog(vm: MusicViewModel, onDismiss: () -> Unit) {
 private fun QuickPickShelf(songs: List<Track>, activeId: String?, onPlay: (Track) -> Unit, onMore: (Track) -> Unit, onPlayAll: () -> Unit) {
     val pages = remember(songs) { songs.take(20).chunked(4) }
     val shelf = rememberLazyListState()
-    val scope = rememberCoroutineScope()
     LaunchedEffect(pages.size) { if (pages.isNotEmpty() && shelf.firstVisibleItemIndex > pages.lastIndex) shelf.scrollToItem(pages.lastIndex) }
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Row(Modifier.fillMaxWidth().padding(start = 22.dp, end = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("Quick picks", fontSize = 22.sp, letterSpacing = (-.5).sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+            Text("Quick picks", style = ArohaType.SectionTitle, modifier = Modifier.weight(1f))
             MotionOutlinedButton(onClick = onPlayAll, shape = CircleShape, contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
                 border = BorderStroke(1.dp, Muted.copy(alpha = .3f)), colors = ButtonDefaults.outlinedButtonColors(contentColor = ContentColor)) {
-                Text("Play all", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-            }
-            MotionOutlinedIconButton(onClick = { scope.launch { shelf.animateScrollToItem((shelf.firstVisibleItemIndex - 1).coerceAtLeast(0)) } },
-                enabled = shelf.canScrollBackward, modifier = Modifier.padding(start = 6.dp).size(40.dp)) {
-                MusicIcon(Icons.AutoMirrored.Rounded.ArrowBack, "Previous quick picks page", modifier = Modifier.size(20.dp))
-            }
-            MotionOutlinedIconButton(onClick = { scope.launch { shelf.animateScrollToItem((shelf.firstVisibleItemIndex + 1).coerceAtMost(pages.lastIndex)) } },
-                enabled = shelf.canScrollForward, modifier = Modifier.padding(start = 6.dp).size(40.dp)) {
-                MusicIcon(Icons.AutoMirrored.Rounded.ArrowForward, "Next quick picks page", modifier = Modifier.size(20.dp))
+                Text("Play all", style = ArohaType.Control)
             }
         }
         BoxWithConstraints(Modifier.fillMaxWidth()) {
@@ -196,9 +194,9 @@ private fun QuickPickShelf(songs: List<Track>, activeId: String?, onPlay: (Track
                                 CoverImage(song.artwork, "Artwork for ${song.title}", Modifier.size(56.dp).clip(RoundedCornerShape(5.dp)), rounded = false)
                                 Column(Modifier.weight(1f).padding(start = 12.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                                     Text(song.homeTitle(), color = if (song.id == activeId) Lavender else ContentColor,
-                                        fontSize = 14.sp, lineHeight = 19.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                        style = ArohaType.TrackTitle, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                     Text(listOf(song.artist, song.album).filter { it.isNotBlank() }.distinct().joinToString(" • "),
-                                        color = Muted, fontSize = 12.sp, lineHeight = 17.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                        color = Muted, style = ArohaType.Metadata, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 }
                                 MotionIconButton(onClick = { onMore(song) }, modifier = Modifier.size(40.dp)) {
                                     MusicIcon(Icons.Outlined.MoreVert, "Options for ${song.title}", tint = Muted, modifier = Modifier.size(20.dp))
