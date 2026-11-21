@@ -8,9 +8,9 @@ Application ID: **`com.arohamusic.app`**. See [first setup](docs/SETUP.md) for i
 
 **Android 8.0+ · GPL-3.0-or-later · No account required**
 
-[![Download latest APK](docs/branding/download-apk.svg)](https://github.com/lxexe/Aroha-Music-App/releases/latest/download/Aroha-Music-latest.apk)
+[![Download latest APK](docs/branding/download-apk.svg)](https://github.com/ArohaMusic/Aroha-Music-App/releases/latest/download/Aroha-Music-latest.apk)
 
-[Release notes and all downloads](https://github.com/lxexe/Aroha-Music-App/releases/latest)
+[Release notes and all downloads](https://github.com/ArohaMusic/Aroha-Music-App/releases/latest)
 
 ## Features
 

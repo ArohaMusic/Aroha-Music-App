@@ -2,7 +2,7 @@
 # Run locally once. Upload secrets directly to GitHub; never print their values.
 set -euo pipefail
 set +x
-repo=${1:-lxexe/Aroha-Music-App}
+repo=${1:-ArohaMusic/Aroha-Music-App}
 if [[ -z "${JAVA_HOME:-}" && -d /opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home ]]; then
   export JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home
 fi

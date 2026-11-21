@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Follow the renamed ArohaMusic GitHub account for verified app updates, release monitoring, setup links and code ownership.
 - Add a personalized Home Speed Dial for playable pinned playlists, recent songs and favorites, with discovery results for new listeners.
 - Add New releases, Charts, Podcasts and Music videos browse tabs at the bottom of Home.
 - Show wide music-video cards on Home, linked artist pages and genre/mood pages; explicit video selections open the player without changing the default playback preference.

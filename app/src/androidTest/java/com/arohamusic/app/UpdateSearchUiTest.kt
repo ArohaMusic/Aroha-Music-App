@@ -35,7 +35,7 @@ class UpdateSearchUiTest {
     private fun waitFor(text: String) = requireNotNull(device.wait(Until.findObject(By.text(text)), 8_000)) { "Missing UI: $text" }
 
     @Test fun updateDialogButtonsFitAndScheduleDetailsAreAbsentInLightAndDark() = runBlocking {
-        val release = GitHubRelease("9.0.0", "## What's new\n- Cleaner search\n- Better update alerts", "https://github.com/lxexe/Aroha-Music-App/releases/tag/v9.0.0", "https://github.com/lxexe/Aroha-Music-App/releases/download/v9.0.0/Aroha-Music-9.0.0.apk")
+        val release = GitHubRelease("9.0.0", "## What's new\n- Cleaner search\n- Better update alerts", "https://github.com/ArohaMusic/Aroha-Music-App/releases/tag/v9.0.0", "https://github.com/ArohaMusic/Aroha-Music-App/releases/download/v9.0.0/Aroha-Music-9.0.0.apk")
         val original = app.features.state.first()
         fun nativeTheme(mode: ThemeMode) {
             if (android.os.Build.VERSION.SDK_INT >= 31) instrumentation.runOnMainSync {

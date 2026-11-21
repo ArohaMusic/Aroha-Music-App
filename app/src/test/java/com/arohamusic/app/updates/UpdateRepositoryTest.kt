@@ -12,10 +12,10 @@ class UpdateRepositoryTest {
         override fun write(value: SavedUpdate) { saved = value }
     }
     private fun release(tag: String = "v1.25.0", body: String = "New player\n- Better lyrics") = JSONObject()
-        .put("tag_name", tag).put("html_url", "https://github.com/lxexe/Aroha-Music-App/releases/tag/$tag")
+        .put("tag_name", tag).put("html_url", "https://github.com/ArohaMusic/Aroha-Music-App/releases/tag/$tag")
         .put("draft", false).put("prerelease", false).put("body", body)
         .put("assets", JSONArray().put(JSONObject().put("name", "Aroha-Music-${tag.removePrefix("v")}.apk")
-            .put("state", "uploaded").put("browser_download_url", "https://github.com/lxexe/Aroha-Music-App/releases/download/$tag/Aroha-Music-${tag.removePrefix("v")}.apk")))
+            .put("state", "uploaded").put("browser_download_url", "https://github.com/ArohaMusic/Aroha-Music-App/releases/download/$tag/Aroha-Music-${tag.removePrefix("v")}.apk")))
         .toString()
 
     @Test fun numericComparisonAvoidsLexicographicAndDowngradeErrors() {
@@ -29,8 +29,8 @@ class UpdateRepositoryTest {
         assertEquals("New player\n- Better lyrics", parsed.notes)
         assertEquals("Visible notes", parseRelease(release(body = "Visible notes<!-- Maintainer: private checklist -->"))!!.notes)
         assertTrue(parsed.apkUrl!!.endsWith("Aroha-Music-1.25.0.apk"))
-        for (url in listOf("https://evil.example/file.apk", "https://github.com.evil.example/lxexe/Aroha-Music-App/releases/download/v1/a.apk",
-            "https://github.com@evil.example/lxexe/Aroha-Music-App/releases/download/v1/a.apk", "http://github.com/lxexe/Aroha-Music-App/releases/download/v1/a.apk")) {
+        for (url in listOf("https://evil.example/file.apk", "https://github.com.evil.example/ArohaMusic/Aroha-Music-App/releases/download/v1/a.apk",
+            "https://github.com@evil.example/ArohaMusic/Aroha-Music-App/releases/download/v1/a.apk", "http://github.com/ArohaMusic/Aroha-Music-App/releases/download/v1/a.apk")) {
             assertFalse(trustedReleaseUrl(url, true))
         }
         val bad = JSONObject(release())
@@ -44,11 +44,13 @@ class UpdateRepositoryTest {
         assertNull(parseRelease(json.toString())!!.apkUrl)
     }
     @Test fun acceptsOnlyTheCanonicalRepositoryAndPublishedAssetNames() {
-        assertEquals("https://api.github.com/repos/lxexe/Aroha-Music-App/releases/latest", RELEASE_API)
+        assertEquals("https://api.github.com/repos/ArohaMusic/Aroha-Music-App/releases/latest", RELEASE_API)
+        assertFalse(trustedReleaseUrl("https://github.com/lxexe/Aroha-Music-App/releases/tag/v1.25.0"))
+        assertFalse(trustedReleaseUrl("https://github.com/lxexe/Aroha-Music-App/releases/download/v1.25.0/Aroha-Music-1.25.0.apk", download = true))
         assertFalse(trustedReleaseUrl("https://github.com/lxexe/Aroha-Music/releases/tag/v1.25.0"))
         assertTrue(parseRelease(release())!!.apkUrl!!.endsWith("Aroha-Music-1.25.0.apk"))
         assertFalse(trustedReleaseUrl("https://github.com/another-owner/Aroha-Music/releases/tag/v1.25.0"))
-        assertFalse(trustedReleaseUrl("https://github.com/lxexe/Aroha-Music-App-untrusted/releases/tag/v1.25.0"))
+        assertFalse(trustedReleaseUrl("https://github.com/ArohaMusic/Aroha-Music-App-untrusted/releases/tag/v1.25.0"))
         val unexpected = JSONObject(release())
         unexpected.getJSONArray("assets").getJSONObject(0).put("name", "Another-Music-latest.apk")
         assertNull(parseRelease(unexpected.toString())!!.apkUrl)

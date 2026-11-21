@@ -3,8 +3,8 @@ package com.arohamusic.app.updates
 import org.json.JSONObject
 import java.net.URI
 
-internal const val RELEASES_URL = "https://github.com/lxexe/Aroha-Music-App/releases/latest"
-internal const val RELEASE_API = "https://api.github.com/repos/lxexe/Aroha-Music-App/releases/latest"
+internal const val RELEASES_URL = "https://github.com/ArohaMusic/Aroha-Music-App/releases/latest"
+internal const val RELEASE_API = "https://api.github.com/repos/ArohaMusic/Aroha-Music-App/releases/latest"
 internal const val DAY_MS = 24 * 60 * 60 * 1000L
 
 internal data class AppVersion(val major: Int, val minor: Int, val patch: Int) : Comparable<AppVersion> {
@@ -29,7 +29,7 @@ internal fun trustedReleaseUrl(value: String, download: Boolean = false): Boolea
     val uri = URI(value)
     uri.scheme == "https" && uri.host.equals("github.com", ignoreCase = true) && uri.userInfo == null &&
         (uri.port == -1 || uri.port == 443) && uri.rawQuery == null && uri.rawFragment == null &&
-        uri.path.startsWith(if (download) "/lxexe/Aroha-Music-App/releases/download/" else "/lxexe/Aroha-Music-App/releases/") &&
+        uri.path.startsWith(if (download) "/ArohaMusic/Aroha-Music-App/releases/download/" else "/ArohaMusic/Aroha-Music-App/releases/") &&
         (!download || uri.path.endsWith(".apk")) && !uri.path.contains("/../")
 }.getOrDefault(false)
 
