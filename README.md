@@ -22,7 +22,8 @@ Application ID: **`com.arohamusic.app`**. See [first setup](docs/SETUP.md) for i
 - Six lyrics providers with learned automatic fallback, real word timing when available, and four cinematic lyric styles.
 - Apple Music player/lyrics defaults, 5-second crossfade, and subtle song-based browsing and Settings backgrounds.
 - Optional video playback and full-screen controls, including a fixed Apple Music player with an inline queue.
-- Optional minimal listening view with artwork and essential controls; lyrics settings include a live preview and separate appearance/source/timing controls.
+- Lyrics settings include a live preview and separate appearance/source/timing controls.
+- Compact Home greetings, larger Explore more tiles and vertically scrolling Charts, Podcasts and Music videos pages.
 - Favorites, playlists, local audio import, backups and supported offline downloads.
 - On-device listening history and Library Insights, with recording controls.
 - Light, dark and AMOLED appearance, widgets and Android Auto browsing.
