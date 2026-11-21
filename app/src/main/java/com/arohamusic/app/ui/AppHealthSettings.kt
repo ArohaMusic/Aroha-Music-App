@@ -46,7 +46,7 @@ internal fun AppHealthSettings(onClose: () -> Unit) {
                 Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
                     Text("Health counts stay on this device and reset for each app version. They contain no songs, searches, URLs or library contents.")
                     if (app.crashReporting.available) SettingsGroup("Optional diagnostics") {
-                        SettingSwitch("Share crash reports", "Off by default. Sends sanitized Java crash stacks, responsiveness samples, and Firebase device/app diagnostics. Separate from basic usage statistics.", reporting, app.crashReporting::setEnabled)
+                        SettingSwitch("Share crash reports", "Off by default. Sends sanitized Java crash stacks, responsiveness samples, and Firebase device/app diagnostics. Separate from basic usage statistics.", reporting, onChange = app.crashReporting::setEnabled)
                     } else Text("This build contains no Firebase crash reporting SDK.", style = MaterialTheme.typography.bodyMedium)
                     CrashTestControls(app.crashReporting, reporting)
                     Text("Responsiveness samples describe a foreground delay longer than 10 seconds; they are not a count of Android-confirmed freezes. Turning reporting off deletes pending reports; already uploaded data remains subject to Firebase retention.", style = MaterialTheme.typography.bodySmall)

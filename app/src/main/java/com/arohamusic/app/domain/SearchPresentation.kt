@@ -7,7 +7,7 @@ sealed interface SearchEntry {
     data class Suggestion(val query: String) : SearchEntry { override val key = "suggestion:$query" }
     data class Video(val track: Track) : SearchEntry { override val key = "video:${track.id}" }
     data class Artist(val profile: com.arohamusic.app.data.youtube.ArtistProfile) : SearchEntry {
-        override val key = "artist:${profile.channelUrl.substringAfterLast('/')}"
+        override val key = "artist:${profile.channelUrl.substringAfterLast('/').ifBlank { profile.name.trim().lowercase(java.util.Locale.ROOT) }}"
     }
     data class CollectionResult(val collection: com.arohamusic.app.data.youtube.BrowseCollection) : SearchEntry {
         override val key = "collection:${collection.kind}:${collection.id}"

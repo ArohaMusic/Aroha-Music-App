@@ -24,6 +24,7 @@ Application ID: **`com.arohamusic.app`**. See [first setup](docs/SETUP.md) for i
 - Optional video playback and full-screen controls, including a fixed Apple Music player with an inline queue.
 - Lyrics settings include a live preview and separate appearance/source/timing controls.
 - Compact Home greetings, larger Explore more tiles and vertically scrolling Charts, Podcasts and Music videos pages.
+- Clear update availability and product highlights, neutral Settings controls and an option to hide the Glimpses tab and shortcuts.
 - Favorites, playlists, local audio import, backups and supported offline downloads.
 - On-device listening history and Library Insights, with recording controls.
 - Light, dark and AMOLED appearance, widgets and Android Auto browsing.

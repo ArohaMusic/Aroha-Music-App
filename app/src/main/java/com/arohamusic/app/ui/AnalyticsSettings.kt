@@ -39,7 +39,7 @@ internal fun AnalyticsSettings(vm: MusicViewModel, initialTab: Int, onClose: () 
                             PrivacyExplanation("Basic usage statistics", "Helps us understand how often Aroha Music is used and which app versions are active.")
                             if (reporting.available) {
                                 SettingsGroup("Reporting") {
-                                    SettingSwitch("Share basic usage statistics", "Enabled by default. You can turn it off at any time.", enabled, reporting::setEnabled)
+                                    SettingSwitch("Share basic usage statistics", "Enabled by default. You can turn it off at any time.", enabled, onChange = reporting::setEnabled)
                                 }
                                 PrivacyExplanation("What is shared", "First launches, sessions, engagement, app updates and app version. Firebase also processes an installation identifier, Android version, device model, language and approximate region.")
                             } else {

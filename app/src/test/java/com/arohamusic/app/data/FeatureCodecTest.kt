@@ -6,6 +6,11 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class FeatureCodecTest {
+    @Test fun hidingGlimpsesPersistsAndExistingInstallationsKeepTheTab() {
+        assertTrue(FeatureCodec.decode("{}").preferences.showGlimpses)
+        val state = FeatureState(preferences = ListeningPreferences(showGlimpses = false))
+        assertEquals(state, FeatureCodec.decode(FeatureCodec.encode(state)))
+    }
     @Test fun lyricProvidersBehaviorsAndAllAnimationStylesSurviveRestart() {
         LyricStyle.entries.forEach { style -> LyricBehavior.entries.forEach { behavior -> LyricProvider.entries.forEach { provider ->
             val state = FeatureState(theme = ThemePreferences(lyricStyle = style), experience = ExperiencePreferences(

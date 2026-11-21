@@ -55,11 +55,23 @@ fun ArohaSheet(onDismissRequest: () -> Unit, sheetState: SheetState = rememberMo
 fun ExpandableSettingsSheet(onDismiss: () -> Unit, title: String = "Settings", content: @Composable () -> Unit) {
     androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss,
         properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
+        NeutralControls {
         SongPageSurface(Modifier.fillMaxSize()) {
             Column(Modifier.fillMaxSize().motionReveal("settings-window-$title").statusBarsPadding().navigationBarsPadding()) {
                 SettingsHeader(title, onDismiss)
                 Box(Modifier.weight(1f).fillMaxWidth().imePadding().padding(bottom = 16.dp)) { content() }
             }
         }
+        }
     }
+}
+
+/** White controls on dark surfaces, dark controls on light surfaces; keep error colors. */
+@Composable
+internal fun NeutralControls(content: @Composable () -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    MaterialTheme(colorScheme = colors.copy(primary = colors.onSurface, onPrimary = colors.surface,
+        primaryContainer = colors.surfaceContainerHighest, onPrimaryContainer = colors.onSurface,
+        secondary = colors.onSurface, onSecondary = colors.surface,
+        secondaryContainer = colors.surfaceContainerHighest, onSecondaryContainer = colors.onSurface), content = content)
 }

@@ -28,6 +28,7 @@ data class ListeningPreferences(
     val videoMode: VideoPlaybackMode = VideoPlaybackMode.FALLBACK,
     val videoQuality: VideoQuality = VideoQuality.HIGHEST,
     val glimpseQuality: GlimpseQuality = GlimpseQuality.AUTO,
+    val showGlimpses: Boolean = true,
 )
 data class QueueSnapshot(
     val tracks: List<Track> = emptyList(), val index: Int = 0, val positionMs: Long = 0,

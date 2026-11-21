@@ -277,7 +277,7 @@ class MusicViewModel(private val app: ArohaApplication,
         }
     }
     private fun warmGlimpses() {
-        if (!appVisible || glimpseViewCount > 0 || glimpseWarmJob?.isActive == true) return
+        if (!features.value.preferences.showGlimpses || !appVisible || glimpseViewCount > 0 || glimpseWarmJob?.isActive == true) return
         val tracks = glimpses.value.items.take(2)
         if (tracks.isEmpty()) return
         glimpseWarmJob = viewModelScope.launch {
@@ -327,10 +327,11 @@ class MusicViewModel(private val app: ArohaApplication,
     fun closeGlimpseCollection() { mutableGlimpseCollection.value = null }
     fun pauseGlimpsesLoading() {
         glimpsesJob?.cancel()
+        glimpseWarmJob?.cancel(); glimpseSources.pauseWarmup()
         mutableGlimpses.update { it.copy(loading = false) }
     }
     fun loadGlimpses(refresh: Boolean = false) {
-        if (glimpsesJob?.isActive == true) return
+        if (!features.value.preferences.showGlimpses || glimpsesJob?.isActive == true) return
         if (refresh) { seenGlimpses.clear(); glimpseRound++; glimpseCursor = null; glimpseQuery = "" }
         val previous = if (refresh) emptyList() else glimpses.value.items
         mutableGlimpses.value = ContentState(previous, loading = true)

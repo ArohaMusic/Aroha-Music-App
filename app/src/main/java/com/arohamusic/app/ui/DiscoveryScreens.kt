@@ -4,6 +4,7 @@ import androidx.compose.foundation.*
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.shape.*
@@ -17,6 +18,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.text.font.FontWeight
@@ -170,7 +172,7 @@ fun MusicSearchScreen(vm: MusicViewModel, onMore: (Track) -> Unit, focusRequest:
                 }
             },
         )
-        LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        LazyRow(modifier = Modifier.testTag("search-filters"), contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             items(listOf("All", "Songs", "Artists", "Albums", "Playlists", "Videos", "Library")) { choice ->
                 MusicCategoryChip(choice, kind == choice) { focus.clearFocus(); keyboard?.hide(); vm.changeSearchKind(choice) }
             }
@@ -191,7 +193,7 @@ fun MusicSearchScreen(vm: MusicViewModel, onMore: (Track) -> Unit, focusRequest:
                     if (nearEnd && canLoadMore) vm.loadMoreSearch()
                 }
         }
-        LazyColumn(Modifier.weight(1f).fillMaxWidth(), state = list, contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
+        LazyColumn(Modifier.weight(1f).fillMaxWidth().clipToBounds().testTag("search-results"), state = list, contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp)) {
             when {
                 query.isBlank() -> {
@@ -250,7 +252,7 @@ fun MusicSearchScreen(vm: MusicViewModel, onMore: (Track) -> Unit, focusRequest:
                             is SearchEntry.Artist -> Row(Modifier.fillMaxWidth().motionClickable {
                                 focus.clearFocus(); keyboard?.hide(); vm.openArtist(entry.profile.name, profile = entry.profile)
                             }.padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                                CoverImage(entry.profile.imageUrl, entry.profile.name, Modifier.size(64.dp).clip(CircleShape).browseArtwork("artist-${entry.profile.name.lowercase(java.util.Locale.ROOT)}"))
+                                ArtistAvatar(entry.profile.name, entry.profile.imageUrl, Modifier.size(64.dp).clip(CircleShape).browseArtwork("artist-${entry.profile.name.lowercase(java.util.Locale.ROOT)}"))
                                 Column(Modifier.weight(1f).padding(start = 14.dp)) {
                                     Text(entry.profile.name, style = ArohaType.TrackTitle, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                     Text("Artist", color = Muted, style = ArohaType.Metadata)
@@ -331,6 +333,7 @@ private fun SearchSuggestionRow(query: String, onSearch: () -> Unit) {
 @UnstableApi
 @Composable
 fun CollectionDetail(vm: MusicViewModel, collection: BrowseCollection, onMore: (Track) -> Unit) {
+    val preferences by vm.preferences.collectAsStateWithLifecycle()
     ThemeSheetSystemBars()
     val songs by vm.collectionSongs.collectAsStateWithLifecycle()
     val library by vm.library.collectAsStateWithLifecycle()
@@ -356,7 +359,7 @@ fun CollectionDetail(vm: MusicViewModel, collection: BrowseCollection, onMore: (
                     MusicIcon(Icons.Rounded.PlayArrow, null); Text("Play")
                 }
                 MotionFilledTonalButton(enabled = songs.items.isNotEmpty() && !loadingMore, onClick = { vm.useCompleteCollection(shuffle = true) }) { MusicIcon(Icons.Rounded.Shuffle, null, modifier = Modifier.size(18.dp)); Spacer(Modifier.width(5.dp)); Text("Shuffle") }
-                GlimpsesButton(songs.items.isNotEmpty()) { vm.previewCollection(collection.title, songs.items) }
+                if (preferences.showGlimpses) GlimpsesButton(songs.items.isNotEmpty()) { vm.previewCollection(collection.title, songs.items) }
                 val saved = library.playlists.any { it.id == "yt-${collection.id}" }
                 MotionOutlinedButton(enabled = songs.items.isNotEmpty() && !saved && !loadingMore, onClick = { vm.useCompleteCollection(save = true) }) { Text(if (saved) "Saved" else "Save") }
             }
