@@ -53,6 +53,7 @@ internal fun LyricsSettingsSheet(vm: MusicViewModel, prefs: ExperiencePreference
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             LyricStyle.entries.forEach { style ->
                                 FilterChip(selected = appearance.lyricStyle == style, onClick = { vm.updateTheme { it.copy(lyricStyle = style) } },
+                                    modifier = Modifier.heightIn(min = 32.dp * density.fontScale.coerceAtLeast(1f)),
                                     label = { Text(style.label) }, leadingIcon = if (appearance.lyricStyle == style) ({ Icon(Icons.Rounded.Check, null, Modifier.size(16.dp)) }) else null)
                             }
                         }
