@@ -68,7 +68,7 @@ fun LyricsPanel(vm: MusicViewModel, track: Track, fullScreen: Boolean = false, e
                 if (!embedded) Text(track.artist, color = Color.White.copy(alpha = .50f), style = ArohaType.Caption,
                     maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            if (!embedded) Glyph(Icons.Rounded.Tune, "Lyrics appearance and timing") { options = true }
+            Glyph(Icons.Rounded.Tune, "Lyrics appearance and timing") { options = true }
             Glyph(if (fullScreen) Icons.Rounded.FullscreenExit else Icons.Rounded.Fullscreen,
                 if (fullScreen) "Exit full-screen lyrics" else "Full-screen lyrics", onClick = onToggleFullScreen)
             Glyph(Icons.Rounded.Close, "Back to player", onClick = onClose)
@@ -105,28 +105,10 @@ fun LyricsPanel(vm: MusicViewModel, track: Track, fullScreen: Boolean = false, e
         }
         if (fullScreen) LyricsPlaybackControls(vm)
     }
-    if (options) AlertDialog(onDismissRequest = { options = false }, title = { Text("Your lyrics") }, text = {
-        Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            SettingsChoice("Lyric style", appearance.lyricStyle, LyricStyle.entries, { it.label }) { style -> vm.updateTheme { it.copy(lyricStyle = style) } }
-            Text(appearance.lyricStyle.description, color = Muted, style = ArohaType.Caption)
-            SettingsChoice("Lyrics behavior", prefs.lyricBehavior, LyricBehavior.entries, { it.label }) { behavior -> vm.updateExperience { it.copy(lyricBehavior = behavior) } }
-            SettingsChoice("Preferred provider", prefs.lyricProvider, LyricProvider.entries, { it.label }) { provider -> vm.updateExperience { it.copy(lyricProvider = provider) } }
-            Row(verticalAlignment = Alignment.CenterVertically) { Text("Try other providers", Modifier.weight(1f)); Switch(prefs.lyricFallback, { enabled -> vm.updateExperience { it.copy(lyricFallback = enabled) } }) }
-            var textSize by remember(prefs.lyricTextSize) { mutableFloatStateOf(prefs.lyricTextSize.toFloat()) }
-            Text("Text size · ${lyricFontSize(appearance.lyricStyle, textSize.toInt(), false).toInt()}")
-            Slider(textSize, { textSize = it }, valueRange = 16f..34f, steps = 17, onValueChangeFinished = { vm.updateExperience { it.copy(lyricTextSize = textSize.toInt()) } })
-            Row(verticalAlignment = Alignment.CenterVertically) { Text("Blur adjacent lines", Modifier.weight(1f)); Switch(prefs.lyricBlur, { enabled -> vm.updateExperience { it.copy(lyricBlur = enabled) } }) }
-            Row(verticalAlignment = Alignment.CenterVertically) { Text("Center text", Modifier.weight(1f)); Switch(prefs.lyricCentered, { enabled -> vm.updateExperience { it.copy(lyricCentered = enabled) } }) }
-            var offset by remember(prefs.lyricOffsetMs) { mutableFloatStateOf(prefs.lyricOffsetMs.toFloat() / 1000) }
-            Text(if (offset == 0f) "Original timing · 0.0 s" else lyricOffsetLabel((offset * 1_000).toLong()))
-            Text("Original timing follows the provider. This adjustment applies to every song.", color = Muted, style = ArohaType.Caption)
-            Slider(offset, { offset = it }, valueRange = -10f..10f, steps = 39, onValueChangeFinished = { vm.updateExperience { it.copy(lyricOffsetMs = (offset * 1000).toLong()) } })
-            MotionTextButton(onClick = { vm.updateExperience { it.copy(lyricOffsetMs = 0) } }) { Text("Reset timing") }
-        }
-    }, confirmButton = { MotionTextButton(onClick = { options = false }) { Text("Done") } })
+    if (options) LyricsSettingsSheet(vm, prefs) { options = false }
 }
 
-private fun lyricOffsetLabel(offsetMs: Long): String = "Lyrics ${"%.1f".format(java.util.Locale.getDefault(), kotlin.math.abs(offsetMs) / 1_000.0)} s ${if (offsetMs > 0) "earlier" else "later"}"
+internal fun lyricOffsetLabel(offsetMs: Long): String = "Lyrics ${"%.1f".format(java.util.Locale.getDefault(), kotlin.math.abs(offsetMs) / 1_000.0)} s ${if (offsetMs > 0) "earlier" else "later"}"
 
 /** Matches the verse geometry instead of showing song rows or an unsynced document. */
 @Composable

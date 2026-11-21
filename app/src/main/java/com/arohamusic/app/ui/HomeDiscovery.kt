@@ -7,6 +7,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -46,21 +51,25 @@ internal fun HomeDiscoveryTabs(selected: HomeDestination? = null, onSelect: (Hom
 internal fun SpeedDialShelf(entries: List<SpeedDialEntry>, loading: Boolean, onPlay: (SpeedDialEntry) -> Unit, onMore: (Track) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         HomeHeading("Speed Dial", "Your music, one tap away")
-        if (entries.isEmpty() && loading) SkeletonGroup {
-            Column(Modifier.padding(horizontal = 22.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                repeat(2) { Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    repeat(3) { Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        SkeletonBox(Modifier.fillMaxWidth().aspectRatio(1f), 12)
-                        SkeletonBox(Modifier.fillMaxWidth(.8f).height(12.dp), 5)
-                        SkeletonBox(Modifier.fillMaxWidth(.6f).height(10.dp), 5)
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            val cardWidth = ((maxWidth - 56.dp) / 2.8f).coerceIn(104.dp, 160.dp)
+            val rowHeight = cardWidth + 54.dp * LocalDensity.current.fontScale.coerceAtLeast(1f)
+            if (entries.isEmpty() && loading) SkeletonGroup {
+                Row(Modifier.padding(horizontal = 22.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    repeat(3) { Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        repeat(2) { Column(Modifier.width(cardWidth).height(rowHeight), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            SkeletonBox(Modifier.fillMaxWidth().aspectRatio(1f), 12)
+                            SkeletonBox(Modifier.fillMaxWidth(.8f).height(12.dp), 5)
+                            SkeletonBox(Modifier.fillMaxWidth(.6f).height(10.dp), 5)
+                        } }
                     } }
-                } }
-            }
-        } else Column(Modifier.padding(horizontal = 22.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            entries.chunked(3).forEach { row ->
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    row.forEach { entry ->
-                        Column(Modifier.weight(1f).combinedClickable(onClickLabel = "Play ${entry.title}",
+                }
+            } else LazyHorizontalGrid(rows = GridCells.Fixed(2),
+                modifier = Modifier.fillMaxWidth().height(rowHeight * 2 + 16.dp).testTag("speed-dial"),
+                contentPadding = PaddingValues(horizontal = 22.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    items(entries, key = { it.key }) { entry ->
+                        Column(Modifier.width(cardWidth).combinedClickable(onClickLabel = "Play ${entry.title}",
                             onClick = { onPlay(entry) }, onLongClickLabel = if (entry.playlist) null else "Song options",
                             onLongClick = if (entry.playlist) null else ({ onMore(entry.tracks.first()) })),
                             verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -73,8 +82,6 @@ internal fun SpeedDialShelf(entries: List<SpeedDialEntry>, loading: Boolean, onP
                             Text(entry.subtitle, maxLines = 1, overflow = TextOverflow.Ellipsis, style = ArohaType.Caption, color = Muted)
                         }
                     }
-                    repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
-                }
             }
         }
     }

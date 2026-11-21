@@ -45,7 +45,15 @@ fun DiscoveryScreen(vm: MusicViewModel, mood: String, onMood: (String) -> Unit, 
     val activeId by vm.activeTrackId.collectAsStateWithLifecycle()
     val metadata by vm.trackIndex.collectAsStateWithLifecycle()
     val recent = remember(library.recentIds, metadata) { library.recentIds.mapNotNull(metadata::get).take(12) }
-    val speedDial = remember(library, experience.pinnedPlaylists, picks.items) { homeSpeedDial(library, experience.pinnedPlaylists, picks.items) }
+    val dialOrder = remember { mutableListOf<String>() }
+    val dialCandidates = remember(picks.items, mix, trending.items, releases.items) {
+        (picks.items + mix + trending.items + releases.items).distinctBy { it.id }
+    }
+    val speedDial = remember(library, experience.pinnedPlaylists, dialCandidates, refresh) {
+        if (refresh) dialOrder.clear()
+        homeSpeedDial(library, experience.pinnedPlaylists, dialCandidates, previousOrder = dialOrder.toList())
+            .also { entries -> dialOrder.clear(); dialOrder.addAll(entries.map { it.key }) }
+    }
     val artists = remember(picks.items, recent, experience.followedArtists) {
         (experience.followedArtists.toList() + (picks.items + recent).flatMap { com.arohamusic.app.data.youtube.ArtistNames.fallback(it.artist) }).distinct().take(16)
     }
