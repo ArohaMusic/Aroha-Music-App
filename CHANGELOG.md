@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 1.2.0
+
+- Add an optional minimal listening view with artwork, song details, seeking and essential playback controls. Enter from the player header and return with Exit minimal or Android Back, preserving the queue and play/pause state.
+- Replace the player's lyrics settings dialog with a spacious bottom sheet, live appearance preview, style chips, separate appearance and source/timing tabs, precise timing controls and a reachable Done button.
+- Make lyrics settings available directly from the embedded player lyrics view as well as full-screen lyrics.
+- Expand Home Speed Dial to up to 24 real suggestions in a horizontally scrolling two-row shelf, combining pinned playlists, recent tracks, favorites and available discovery results.
+- Improve artist variety in Speed Dial and preserve its visible song order during playback; manual Home refresh rebuilds the suggestions.
+
 ## 1.1.0
 
 - Follow the renamed ArohaMusic GitHub account for verified app updates, release monitoring, setup links and code ownership.

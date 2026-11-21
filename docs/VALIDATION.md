@@ -1,5 +1,14 @@
 # Aroha Music validation
 
+## 1.2.0 listening experience — 21 November 2026
+
+- SDK-free debug and optimized unsigned release builds pass, together with 375 JVM tests, 46 release/publication Python tests and debug lint (0 errors; 55 warnings outside the changed UI files).
+- Targeted disposable-emulator checks cover minimal-mode playback/pause preservation and Back navigation, embedded lyrics settings, timing persistence without pausing audio, horizontal Speed Dial selection beyond the initial viewport, and the fixed Done action at 160% text size.
+- The source audit covers 450 allowlisted files. Screenshots, generated test audio/artwork, build outputs and test logs remain outside public source. No dependencies, permissions or reporting defaults were changed.
+- These UI checks use generated local media and a local lyrics fixture. They do not claim physical-phone testing or live-provider availability. Production identity and an upgrade installation must also be verified against the workflow's signed APK before publication.
+
+## Original clean publication record
+
 Clean publication snapshot checked on **20 November 2026**: **1.0.0 (1)**, application ID **`com.arohamusic.app`**. This snapshot uses the current working source after the latest UI removals.
 
 - SDK-free debug, unsigned optimized release and instrumentation APK builds pass. All **359 JVM tests**, **46 Python tests** and **4 targeted emulator checks** pass. Debug lint reports **0 errors and 47 existing warnings**, with no unused-resource findings. Actionlint, workflow action pinning and shell syntax checks pass.

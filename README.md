@@ -16,11 +16,13 @@ Application ID: **`com.arohamusic.app`**. See [first setup](docs/SETUP.md) for i
 
 - Search songs, artists, albums and playlists through public YouTube Music discovery.
 - Personalized Quick Picks, artist pages and region-aware discovery.
+- Horizontally scrollable Home Speed Dial with up to 24 real playlist/song suggestions and stable ordering during playback.
 - [Glimpses](docs/GLIMPSES.md): personalized swipeable previews, adaptive video up to the highest supported source quality, collection previews, likes, playlist saves and full-song discovery.
 - Background audio, queues, shuffle, repeat, crossfade and a sleep timer.
 - Six lyrics providers with learned automatic fallback, real word timing when available, and four cinematic lyric styles.
 - Apple Music player/lyrics defaults, 5-second crossfade, and subtle song-based browsing and Settings backgrounds.
 - Optional video playback and full-screen controls, including a fixed Apple Music player with an inline queue.
+- Optional minimal listening view with artwork and essential controls; lyrics settings include a live preview and separate appearance/source/timing controls.
 - Favorites, playlists, local audio import, backups and supported offline downloads.
 - On-device listening history and Library Insights, with recording controls.
 - Light, dark and AMOLED appearance, widgets and Android Auto browsing.

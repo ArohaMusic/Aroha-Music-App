@@ -16,8 +16,8 @@ class HomeDiscoveryTest {
     }
     @Test fun speedDialWorksForNewListenersAndRespectsBoundsWithoutInventingItems() {
         val candidates = (0..20).map { song(it.toString()) }
-        assertEquals(6, homeSpeedDial(LibraryState(), emptySet(), candidates).size)
-        assertEquals(9, homeSpeedDial(LibraryState(), emptySet(), candidates, 100).size)
+        assertEquals(21, homeSpeedDial(LibraryState(), emptySet(), candidates).size)
+        assertEquals(21, homeSpeedDial(LibraryState(), emptySet(), candidates, 100).size)
         assertTrue(homeSpeedDial(LibraryState(), emptySet(), emptyList()).isEmpty())
         assertTrue(homeSpeedDial(LibraryState(), emptySet(), candidates, -1).isEmpty())
     }
@@ -28,5 +28,23 @@ class HomeDiscoveryTest {
         val entries = homeSpeedDial(library, setOf("same"), listOf(song.copy(title = "Outdated")))
         assertEquals(2, entries.map { it.key }.distinct().size)
         assertTrue(entries.all { it.tracks.first().title == song.title })
+    }
+    @Test fun expandedDialShowsMoreRealSuggestionsAndClampsItsMaximum() {
+        val candidates = (0..49).map { song("$it") }
+        assertEquals(24, homeSpeedDial(LibraryState(), emptySet(), candidates).size)
+        assertEquals(30, homeSpeedDial(LibraryState(), emptySet(), candidates, 500).size)
+        assertEquals(24, homeSpeedDial(LibraryState(), emptySet(), candidates + candidates).map { it.key }.distinct().size)
+    }
+    @Test fun discoveryGivesDifferentArtistsSpaceBeforeRepeatingOne() {
+        val tracks = listOf(song("a"), song("b"), song("c").copy(artist = "Other artist"))
+        assertEquals(listOf("song:a", "song:c", "song:b"), homeSpeedDial(LibraryState(), emptySet(), tracks).map { it.key })
+    }
+    @Test fun playingASongKeepsTheVisibleDialOrderWhileNewSuggestionsAppend() {
+        val tracks = (0..10).map { song("$it") }
+        val first = homeSpeedDial(LibraryState(), emptySet(), tracks)
+        val afterPlaying = homeSpeedDial(LibraryState(savedTracks = tracks, recentIds = listOf("8")), emptySet(),
+            tracks + song("new"), previousOrder = first.map { it.key })
+        assertEquals(first.map { it.key }, afterPlaying.take(first.size).map { it.key })
+        assertEquals("song:new", afterPlaying.last().key)
     }
 }

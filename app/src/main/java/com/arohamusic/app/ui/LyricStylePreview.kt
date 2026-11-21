@@ -32,7 +32,7 @@ private val previewLines = listOf(
         LyricWord(10_700, "with ", 11_400), LyricWord(11_400, "the ", 12_000), LyricWord(12_000, "morning", 14_000))))
 
 @Composable
-internal fun LyricStylePreview(style: LyricStyle, reduceMotion: Boolean) {
+internal fun LyricStylePreview(style: LyricStyle, reduceMotion: Boolean, preferences: ExperiencePreferences = ExperiencePreferences()) {
     var playing by remember { mutableStateOf(true) }
     val position = remember { mutableLongStateOf(5_300) }
     val active by remember { derivedStateOf { previewLines.indexOfLast { it.timeMs <= position.longValue } } }
@@ -57,7 +57,7 @@ internal fun LyricStylePreview(style: LyricStyle, reduceMotion: Boolean) {
             }
         }
         val lyrics = remember { Lyrics(lines = previewLines) }
-        val prefs = remember { ExperiencePreferences(lyricBehavior = LyricBehavior.WORD) }
+        val prefs = preferences.copy(lyricBehavior = LyricBehavior.WORD)
         SyncedLyricsView(lyrics, position, active, rememberLazyListState(), prefs, style,
             embedded = true, following = true, reduceMotion = reduceMotion,
             modifier = Modifier.fillMaxWidth().height(224.dp)) { line -> position.longValue = line.timeMs }
