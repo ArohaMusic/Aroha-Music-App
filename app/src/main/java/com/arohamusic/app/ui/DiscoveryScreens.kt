@@ -240,7 +240,7 @@ fun MusicSearchScreen(vm: MusicViewModel, onMore: (Track) -> Unit, focusRequest:
                             }
                         }
                         items(group.entries, key = { "${group.kind}:${it.key}" }, contentType = { it::class.simpleName ?: "result" }) { entry ->
-                        Box(motionItem()) { when (entry) {
+                        Box(motionItem().testTag("search-result:${group.kind}:${entry.key}")) { when (entry) {
                             is SearchEntry.Song -> SearchSongRow(entry.track, activeId == entry.track.id, onPlay = {
                                 focus.clearFocus(); keyboard?.hide(); if (group.kind == "Library") vm.playLibrarySearchResult(entry.track) else vm.playSearchResult(entry.track)
                             }, onMore = { onMore(entry.track) })
@@ -252,7 +252,10 @@ fun MusicSearchScreen(vm: MusicViewModel, onMore: (Track) -> Unit, focusRequest:
                             is SearchEntry.Artist -> Row(Modifier.fillMaxWidth().motionClickable {
                                 focus.clearFocus(); keyboard?.hide(); vm.openArtist(entry.profile.name, profile = entry.profile)
                             }.padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                                ArtistAvatar(entry.profile.name, entry.profile.imageUrl, Modifier.size(64.dp).clip(CircleShape).browseArtwork("artist-${entry.profile.name.lowercase(java.util.Locale.ROOT)}"))
+                                // Recycled results can contain different channels with the same
+                                // name. Keep row artwork local instead of registering shared keys.
+                                ArtistAvatar(entry.profile.name, entry.profile.imageUrl,
+                                    Modifier.size(64.dp).testTag("search-artwork:Artists:${entry.key}").clip(CircleShape))
                                 Column(Modifier.weight(1f).padding(start = 14.dp)) {
                                     Text(entry.profile.name, style = ArohaType.TrackTitle, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                     Text("Artist", color = Muted, style = ArohaType.Metadata)
@@ -261,7 +264,8 @@ fun MusicSearchScreen(vm: MusicViewModel, onMore: (Track) -> Unit, focusRequest:
                             is SearchEntry.CollectionResult -> Row(Modifier.fillMaxWidth().motionClickable {
                                 focus.clearFocus(); keyboard?.hide(); vm.openCollection(entry.collection)
                             }.padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                                CoverImage(entry.collection.thumbnailUrl, entry.collection.title, Modifier.size(64.dp).browseArtwork("collection-${entry.collection.id}"))
+                                CoverImage(entry.collection.thumbnailUrl, entry.collection.title,
+                                    Modifier.size(64.dp).testTag("search-artwork:${group.kind}:${entry.key}"))
                                 Column(Modifier.weight(1f).padding(start = 12.dp)) {
                                     Text(entry.collection.title, style = ArohaType.TrackTitle)
                                     Text("${if (entry.collection.kind == CollectionKind.ALBUM) "Album" else "Playlist"} · ${entry.collection.artist}", color = Muted, style = ArohaType.Metadata)

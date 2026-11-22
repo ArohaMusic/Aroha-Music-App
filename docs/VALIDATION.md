@@ -1,5 +1,13 @@
 # Aroha Music validation
 
+## 1.3.2 search return-scroll fix — 22 November 2026
+
+- Reproduced invisible portraits with distinct artist channels sharing a display name: a returned portrait region contained no artwork pixels while another same-name row retained its image. Search images now render within their own recycled rows rather than sharing route-transition keys.
+- The regression checks artwork leaving the viewport and being visibly drawn again after returning, in Artists (both same-name channels), Songs, Videos, Albums, Playlists, Library and All. It also retains missing/error placeholders, search-header clipping and player-layer checks. Screenshots and pixel-comparison evidence remain outside public source.
+- The reported App health run `44945323878` passed release delivery, search and lyrics; its live stream/download probe failed with `network_or_provider_restriction`. The same 16 KB public-stream probe passed locally. Provider checks remain strict and now expose only safe stage/class/status diagnostics, not signed URLs or request secrets.
+- No dependencies, permissions or stored-data models changed. Production signing and an upgrade from 1.3.1 remain release artifact checks.
+- Debug, optimized unsigned release and instrumentation builds pass with 381 JVM tests, 48 Python checks and lint with 0 errors (53 warnings). The complete all-filter return-scroll UI test passes on the disposable emulator, as does the opt-in bounded live-stream test. These results do not establish physical-phone behavior or availability from every network.
+
 ## 1.3.1 updates, Settings and search — 22 November 2026
 
 - Debug, optimized unsigned release and instrumentation builds pass, together with 381 JVM tests, 48 Python publication/release checks and debug lint with no errors. The new tests cover successful-check reuse, server backoff/restart, update-state presentation, release-note filtering and the backward-compatible Glimpses preference.

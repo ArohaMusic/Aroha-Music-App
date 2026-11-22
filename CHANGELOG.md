@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 1.3.2
+
+- Keep search artwork local to each result row so different artists with the same display name cannot share a transition key and hide one another's portraits during scrolling.
+- Apply the same stable rendering to album and playlist results, retaining clipping below the search chips and behind the music player.
+- Verify actual artwork pixels after scrolling results offscreen and back in every search filter, including duplicate-name artists, failed images and local-library results.
+- Add safe request-stage, exception-class and HTTP-status diagnostics to live provider checks without logging media URLs, headers or credentials, or relaxing failed-check behavior.
+
 ## 1.3.1
 
 - Redesign the update modal with explicit availability, installed/available versions, readable product highlights and distinct download, progress and install actions.
