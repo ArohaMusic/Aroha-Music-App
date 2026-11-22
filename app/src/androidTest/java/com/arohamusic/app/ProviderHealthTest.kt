@@ -22,24 +22,34 @@ class ProviderHealthTest {
         is java.io.IOException -> "network_or_provider_restriction"
         else -> "provider_or_schema"
     }
-    private suspend fun probe(name: String, block: suspend () -> Unit) {
+    private suspend fun probe(name: String, stage: () -> String = { "request" }, block: suspend () -> Unit) {
         val start = android.os.SystemClock.elapsedRealtime()
         try { withTimeout(45_000) { block() }; android.util.Log.i("ArohaHealth", "$name passed elapsed_ms=${android.os.SystemClock.elapsedRealtime() - start}") }
-        catch (error: Exception) { Assert.fail("$name failed category=${category(error)}") }
+        catch (error: Exception) {
+            // Class names and response codes identify the failing stage without
+            // publishing signed media URLs, headers, cookies or provider bodies.
+            val causes = generateSequence(error as Throwable) { it.cause }.take(6).toList()
+            val classes = causes.map { it.javaClass.simpleName }.distinct().joinToString(">")
+            val status = causes.filterIsInstance<androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException>().firstOrNull()?.responseCode
+            Assert.fail("$name failed category=${category(error)} stage=${stage()} causes=$classes" + (status?.let { " http_status=$it" } ?: ""))
+        }
     }
     @Test fun search() = runBlocking {
         probe("search") { Assert.assertTrue(YoutubeMusicRepository().searchPage("NCS music", "Songs", refresh = true).tracks.isNotEmpty()) }
     }
     @Test fun streamAndBoundedDownload() = runBlocking {
-        probe("stream_download") {
+        var stage = "resolve_stream"
+        probe("stream_download", { stage }) {
             val stream = YoutubeMusicRepository().getAudioStream("K4DyBUG242c") // Public NCS test recording.
             val source = androidx.media3.datasource.DefaultHttpDataSource.Factory().setConnectTimeoutMs(15000).setReadTimeoutMs(20000).createDataSource()
             try {
+                stage = "open_stream"
                 source.open(androidx.media3.datasource.DataSpec.Builder().setUri(stream.url)
                     .setHttpMethod(androidx.media3.datasource.DataSpec.HTTP_METHOD_POST)
                     .setHttpBody(com.arohamusic.app.playback.youtubeStreamBody)
                     .setHttpRequestHeaders(com.arohamusic.app.playback.youtubeStreamHeaders(stream.url)).setLength(16384).build())
                 val data = ByteArray(16384)
+                stage = "read_stream"
                 val count = source.read(data, 0, data.size)
                 Assert.assertTrue(count > 0)
             } finally { source.close() }

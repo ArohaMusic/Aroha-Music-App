@@ -215,7 +215,7 @@ class ListeningExperienceTest {
         }
     }
 
-    @Test fun searchPortraitsHaveFallbacksAndStayBelowChipsAndPlayer(): Unit = runBlocking {
+    @Test(timeout = 300_000) fun searchPortraitsHaveFallbacksAndStayBelowChipsAndPlayer(): Unit = runBlocking {
         fixture { scenario, vm, tracks ->
             app.features.update { it.copy(theme = it.theme.copy(reduceMotion = false, motion = MotionLevel.FULL)) }
             eventually("Full motion enabled") { !vm.features.value.theme.reduceMotion }
@@ -241,7 +241,9 @@ class ListeningExperienceTest {
                 flow<String>("mutableSearchKind").value = "Artists"
                 flow<Boolean>("mutableSearchLoading").value = false
                 flow<List<ArtistProfile>>("mutableSearchArtists").value = (0..19).map { index ->
-                    ArtistProfile("Fixture artist $index", when (index) { 0 -> ""; 1 -> "file:///nonexistent-artist-fixture.png"; else -> tracks.first().artwork })
+                    ArtistProfile("Fixture artist ${if (index < 2) index else index / 2 + 1}",
+                        when (index) { 0 -> ""; 1 -> "file:///nonexistent-artist-fixture.png"; else -> tracks.first().artwork },
+                        channelUrl = "https://music.youtube.com/channel/scroll-$index")
                 }
             }
             assertTrue(device.wait(Until.hasObject(By.desc("Artist image unavailable for Fixture artist 0")), 4_000))
@@ -261,6 +263,41 @@ class ListeningExperienceTest {
                     assertEquals("Artist artwork cannot escape into the header", 0, escaped)
                 } finally { image.recycle() }
             }
+            suspend fun artworkSurvivesRoundTrip(first: BySelector, artwork: BySelector, label: String) {
+                fun scroll(up: Boolean) {
+                    val bounds = device.findObject(By.res("search-results")).visibleBounds
+                    device.swipe(bounds.centerX(), if (up) bounds.top + 30 else bounds.bottom - 30,
+                        bounds.centerX(), if (up) bounds.bottom - 30 else bounds.top + 30, 45)
+                }
+                repeat(2) {
+                    scroll(false)
+                    delay(120)
+                }
+                assertNull("$label first row leaves the viewport", device.findObject(By.res("search-results")).findObject(first))
+                repeat(5) {
+                    val results = device.findObject(By.res("search-results"))
+                    if (results.findObject(first) == null) { scroll(true); delay(150) }
+                }
+                // Finish returning to the start rather than stopping with a partially clipped row.
+                scroll(true)
+                delay(700)
+                val node = device.findObject(By.res("search-results")).findObject(artwork)
+                capture("scroll-return-$label")
+                assertNotNull("$label artwork returns to the viewport", node)
+                val bounds = node!!.visibleBounds
+                val bitmap = instrumentation.uiAutomation.takeScreenshot()
+                try {
+                    val pixels = IntArray(bounds.width() * bounds.height())
+                    bitmap.getPixels(pixels, 0, bounds.width(), bounds.left, bounds.top, bounds.width(), bounds.height())
+                    val colored = pixels.count { pixel -> kotlin.math.abs(android.graphics.Color.red(pixel) - 178) < 8 &&
+                        kotlin.math.abs(android.graphics.Color.green(pixel) - 45) < 8 && kotlin.math.abs(android.graphics.Color.blue(pixel) - 55) < 8 }
+                    assertTrue("$label artwork is actually drawn after scrolling away and back (colored pixels=$colored)", colored > 100)
+                } finally { bitmap.recycle() }
+            }
+            artworkSurvivesRoundTrip(By.descContains("Artist image unavailable for Fixture artist 0"),
+                By.res("search-artwork:Artists:artist:scroll-2"), "artists-first-same-name")
+            artworkSurvivesRoundTrip(By.descContains("Artist image unavailable for Fixture artist 0"),
+                By.res("search-artwork:Artists:artist:scroll-3"), "artists-second-same-name")
             assertNoCoverInHeader(device.findObject(By.res("search-filters")).visibleBounds.bottom)
             capture("search-artist-scroll")
             click(By.desc("Open full player"))
@@ -290,6 +327,7 @@ class ListeningExperienceTest {
                     flow<String>("mutableSearchKind").value = kind
                     flow<List<Track>>("mutableSearchResults").value = tracks
                     flow<List<Track>>("mutableSearchVideos").value = tracks
+                    flow<List<Track>>("mutableLibrarySearchResults").value = tracks
                     flow<List<BrowseCollection>>("mutableSearchCollections").value = (0..23).map { index ->
                         BrowseCollection("clip-$index", "Suggestion collection $index", "Fixture creator", tracks.first().artwork, "", 25,
                             if (index % 2 == 0) CollectionKind.ALBUM else CollectionKind.PLAYLIST)
@@ -300,6 +338,13 @@ class ListeningExperienceTest {
                 delay(500)
                 assertNoCoverInHeader(device.findObject(By.res("search-filters")).visibleBounds.bottom)
                 capture("search-clipped-${kind.lowercase()}")
+                val image = when (kind) {
+                    "Videos" -> By.res("search-result:Videos:video:${tracks.first().id}")
+                    "Albums" -> By.res("search-result:Albums:collection:ALBUM:clip-0")
+                    "Playlists" -> By.res("search-result:Playlists:collection:PLAYLIST:clip-1")
+                    else -> By.res("search-result:${if (kind == "All") "Songs" else kind}:track:${tracks.first().id}")
+                }
+                artworkSurvivesRoundTrip(image, image, kind.lowercase())
             }
         }
     }
